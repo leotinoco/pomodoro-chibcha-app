@@ -4,7 +4,7 @@ import { getGoogleClient } from "@/lib/google";
 import { google } from "googleapis";
 import { authOptions } from "../auth/[...nextauth]/route";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions); // Type assertion if needed or valid config
   if (!session?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,15 +17,10 @@ export async function GET(req: NextRequest) {
     // Get the first task list for simplicity, or handle multiple lists
     const response = await service.tasklists.list();
     const taskLists = response.data.items;
-    console.log("Found Task Lists:", taskLists?.length);
-    taskLists?.forEach((list) =>
-      console.log(`- List: ${list.title} (${list.id})`),
-    );
 
     const firstListId = taskLists?.[0]?.id;
 
     if (!firstListId) {
-      console.log("No task lists found.");
       return NextResponse.json({ tasks: [] });
     }
 
@@ -34,13 +29,6 @@ export async function GET(req: NextRequest) {
       showCompleted: false, // Only show active tasks
       showHidden: false,
     });
-
-    console.log(
-      "Tasks found in list",
-      firstListId,
-      ":",
-      tasksResponse.data.items?.length,
-    );
 
     return NextResponse.json({
       tasks: tasksResponse.data.items || [],
@@ -61,17 +49,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { tasklist, task, status, parent, previous, due, title } = await req.json();
-
-  console.log("PATCH /api/tasks received:", {
-    tasklist,
-    task,
-    status,
-    parent,
-    previous,
-    due,
-    title,
-  });
+  const { tasklist, task, status, parent, previous, due, title } =
+    await req.json();
 
   const auth = getGoogleClient(session.accessToken);
   const service = google.tasks({ version: "v1", auth });
@@ -79,19 +58,16 @@ export async function PATCH(req: NextRequest) {
   try {
     // If 'parent' or 'previous' is provided, we use the 'move' endpoint
     if (parent !== undefined || previous !== undefined) {
-      console.log("Moving task...", { parent, previous });
       const moveResponse = await service.tasks.move({
         tasklist,
         task,
         parent: parent || undefined, // If null/empty, it moves to root (usually)
         previous: previous || undefined,
       });
-      console.log("Google Tasks move success:", moveResponse.status);
       return NextResponse.json(moveResponse.data);
     }
 
     // Otherwise, we simply patch the task properties (like status or title)
-    console.log("Calling Google Tasks patch...");
     const response = await service.tasks.patch({
       tasklist,
       task,
@@ -101,17 +77,18 @@ export async function PATCH(req: NextRequest) {
         ...(due !== undefined && { due }),
       },
     });
-    console.log("Google Tasks patch success:", response.status);
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error(
-      "Error updating task (Google API):",
-      error.message,
-      error.response?.data,
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Error updating task (Google API)";
+    const details =
+      process.env.NODE_ENV !== "production" ? { details: message } : {};
+    console.error("Error updating task (Google API):", message);
     return NextResponse.json(
-      { error: "Failed to update task", details: error.message },
+      { error: "Failed to update task", ...details },
       { status: 500 },
     );
   }

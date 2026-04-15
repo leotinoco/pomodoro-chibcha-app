@@ -34,7 +34,9 @@ async function refreshAccessToken(token: JWT) {
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken, // Fallback to old refresh token
     };
   } catch (error) {
-    console.error("RefreshAccessTokenError", error);
+    const message =
+      error instanceof Error ? error.message : "RefreshAccessTokenError";
+    console.error("RefreshAccessTokenError", message);
 
     return {
       ...token,
@@ -44,6 +46,7 @@ async function refreshAccessToken(token: JWT) {
 }
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -74,8 +77,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Return previous token if the access token has not expired yet
-      // @ts-ignore
-      if (Date.now() < (token.accessTokenExpires as number)) {
+      if (Date.now() < (token.accessTokenExpires ?? 0)) {
         return token;
       }
 
@@ -83,17 +85,10 @@ export const authOptions: NextAuthOptions = {
       return refreshAccessToken(token);
     },
     async session({ session, token }) {
-      // @ts-ignore
       session.accessToken = token.accessToken;
-      // @ts-ignore
       session.error = token.error;
-      // @ts-ignore
       if (token.picture) {
-        if (!session.user) {
-          // @ts-ignore
-          session.user = {};
-        }
-        session.user.image = token.picture;
+        session.user = { ...(session.user ?? {}), image: token.picture };
       }
       return session;
     },

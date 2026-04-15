@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare": "husky install",
+    "security:scan": "node scripts/scan-secrets.mjs --worktree",
+    "security:scan-staged": "node scripts/scan-secrets.mjs --staged"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -19,7 +22,7 @@
     "googleapis": "^171.4.0",
     "howler": "^2.2.4",
     "lucide-react": "^0.564.0",
-    "next": "16.1.6",
+    "next": "16.2.3",
     "next-auth": "^4.24.13",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -33,7 +36,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.2.3",
+    "husky": "^9.1.7",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

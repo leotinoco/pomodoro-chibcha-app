@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.0] - 2026-04-15
+
+### Features
+
+- Reproductor de SFX robusto para Pomodoro con precarga, verificación de disponibilidad y reintentos automáticos en fallos de reproducción inicial.
+- Integración de eventos de fase para disparar sonidos de forma consistente: `star.wav` al iniciar foco, `break.wav` en descansos, y `large-break.wav` en descansos largos.
+- Nueva opción de duración de foco de **40 minutos** integrada en la UI y en la lógica de transición del temporizador.
+- Integración de controles de seguridad del repositorio: escaneo de secretos en pre-commit y documentación de reporte de vulnerabilidades.
+
+### Fixes
+
+- Corrección de condiciones de carrera entre transición de estados del temporizador y disparo de efectos de audio.
+- Corrección del ducking de audio ambiental para restablecer volumen correctamente incluso ante errores de reproducción.
+- Sanitización de logs en endpoints para evitar exposición de datos sensibles en producción.
+- Actualización de dependencias para resolver vulnerabilidades reportadas por `npm audit`.
+
+### Breaking Changes
+
+- No se identifican breaking changes en esta versión.
+
+### Enlaces de commits relevantes
+
+- [Commit base anterior `19f638c`](https://github.com/leotinoco/pomodoro-chibcha-app/commit/19f638c071cdc62858152ea1a7a9c44d09825400)
+- [Comparación de cambios `0.3.0...0.4.0`](https://github.com/leotinoco/pomodoro-chibcha-app/compare/19f638c071cdc62858152ea1a7a9c44d09825400...main)
+
+---
+
 ## [0.3.0] - 2026-03-31
 
 ### Añadido

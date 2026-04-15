@@ -1,6 +1,7 @@
 "use client";
 
 import { usePomodoro } from "@/hooks/usePomodoro";
+import type { SfxType } from "@/hooks/useSfx";
 import {
   Play,
   Pause,
@@ -16,7 +17,7 @@ import { useEffect } from "react";
 export default function PomodoroTimer({
   onPlaySfx,
 }: {
-  onPlaySfx: (type: "start" | "break" | "longBreak") => void;
+  onPlaySfx: (type: SfxType) => void;
 }) {
   const {
     mode,
@@ -27,7 +28,13 @@ export default function PomodoroTimer({
     toggleTimer,
     resetTimer,
     formatTime,
-  } = usePomodoro();
+  } = usePomodoro({
+    onPhaseStart: (phase) => {
+      if (phase === "focus") onPlaySfx("start");
+      if (phase === "shortBreak" || phase === "meal") onPlaySfx("break");
+      if (phase === "longBreak") onPlaySfx("longBreak");
+    },
+  });
 
   useEffect(() => {
     if (timeLeft === 0) {
@@ -36,34 +43,8 @@ export default function PomodoroTimer({
         spread: 70,
         origin: { y: 0.6 },
       });
-
-      if (mode === "focus") {
-        // We are checking the CURRENT state before the hook updates it in its effect.
-        // Actually, the hook updates in the same render cycle effectively if we are not careful,
-        // but simple effects run after render.
-        // If timeLeft is 0, the session is done.
-        // sessionsCompleted here is the value BEFORE the hook increments it?
-        // No, the hook handles the transition in its own useEffect on [timeLeft].
-        // This component also has a useEffect on [timeLeft].
-        // They might run in any order or together.
-        // However, we can reliably use the logic:
-        // Next will be (sessionsCompleted + 1).
-
-        if ((sessionsCompleted + 1) % 4 === 0) {
-          onPlaySfx("longBreak");
-        } else {
-          onPlaySfx("break");
-        }
-      }
     }
-  }, [timeLeft, mode, sessionsCompleted, onPlaySfx]);
-
-  const handleToggle = () => {
-    if (!isActive) {
-      onPlaySfx("start");
-    }
-    toggleTimer();
-  };
+  }, [timeLeft]);
 
   return (
     <div className="flex flex-col items-center justify-center p-8 bg-neutral-900/50 backdrop-blur-md rounded-3xl border border-neutral-800 shadow-2xl relative overflow-hidden">
@@ -75,7 +56,7 @@ export default function PomodoroTimer({
       {/* Mode Selectors */}
       <div className="flex gap-2 mb-8 flex-wrap justify-center">
         <button
-          onClick={() => switchMode("focus", 25 * 60)}
+          onClick={() => switchMode("focus")}
           className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
             mode === "focus"
               ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
@@ -124,7 +105,7 @@ export default function PomodoroTimer({
       {/* Controls */}
       <div className="flex items-center gap-4">
         <button
-          onClick={handleToggle}
+          onClick={toggleTimer}
           aria-label={isActive ? "Pause Timer" : "Start Timer"}
           className="p-4 bg-white text-black rounded-full hover:scale-110 transition-transform shadow-lg hover:shadow-xl active:scale-95"
         >
@@ -146,7 +127,7 @@ export default function PomodoroTimer({
       {/* Quick Duration Toggles for Focus */}
       {mode === "focus" && (
         <div className="mt-8 flex gap-2">
-          {[15, 20, 25, 30].map((mins) => (
+          {[15, 20, 25, 30, 40].map((mins) => (
             <button
               key={mins}
               onClick={() => switchMode("focus", mins * 60)}

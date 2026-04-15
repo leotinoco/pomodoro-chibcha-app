@@ -4,7 +4,7 @@ import { getGoogleClient } from "@/lib/google";
 import { google } from "googleapis";
 import { authOptions } from "../auth/[...nextauth]/route";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,16 +26,6 @@ export async function GET(req: NextRequest) {
       singleEvents: true,
       orderBy: "startTime",
     });
-
-    console.log("Calendar API Response Events:", response.data.items?.length);
-    if (response.data.items?.length === 0) {
-      console.log(
-        "No events found. Time range:",
-        now.toISOString(),
-        "to",
-        endOfTomorrow.toISOString(),
-      );
-    }
 
     return NextResponse.json({
       events: response.data.items || [],
@@ -78,10 +68,14 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error("Error creating calendar event:", error);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Error creating calendar event";
+    const details =
+      process.env.NODE_ENV !== "production" ? { details: message } : {};
+    console.error("Error creating calendar event:", message);
     return NextResponse.json(
-      { error: "Failed to create event", details: error.message },
+      { error: "Failed to create event", ...details },
       { status: 500 },
     );
   }
@@ -112,10 +106,14 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error("Error updating calendar event:", error);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Error updating calendar event";
+    const details =
+      process.env.NODE_ENV !== "production" ? { details: message } : {};
+    console.error("Error updating calendar event:", message);
     return NextResponse.json(
-      { error: "Failed to update event", details: error.message },
+      { error: "Failed to update event", ...details },
       { status: 500 },
     );
   }

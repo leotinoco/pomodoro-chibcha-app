@@ -9,12 +9,20 @@ const MODES: Record<Mode, number> = {
   meal: 60 * 60,
 };
 
-export const usePomodoro = () => {
+type UsePomodoroOptions = {
+  onPhaseStart?: (mode: Mode) => void;
+};
+
+export const usePomodoro = (options: UsePomodoroOptions = {}) => {
+  const onPhaseStart = options.onPhaseStart;
   const [mode, setMode] = useState<Mode>("focus");
+  const [focusDuration, setFocusDuration] = useState(MODES.focus);
   const [timeLeft, setTimeLeft] = useState(MODES.focus);
   const [isActive, setIsActive] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [phaseId, setPhaseId] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const notifiedPhaseRef = useRef<number | null>(null);
 
   const requestNotificationPermission = useCallback(() => {
     if ("Notification" in window && Notification.permission !== "granted") {
@@ -22,19 +30,42 @@ export const usePomodoro = () => {
     }
   }, []);
 
-  const switchMode = (newMode: Mode, customDuration?: number) => {
-    setMode(newMode);
-    setTimeLeft(customDuration || MODES[newMode]);
-    setIsActive(false);
-  };
+  const startPhase = useCallback(
+    (newMode: Mode, durationSeconds: number, autoStart: boolean) => {
+      setMode(newMode);
+      setTimeLeft(durationSeconds);
+      setIsActive(autoStart);
+      setPhaseId((prev) => prev + 1);
+    },
+    [],
+  );
 
-  const toggleTimer = () => setIsActive(!isActive);
+  const switchMode = useCallback(
+    (newMode: Mode, customDuration?: number) => {
+      const durationSeconds =
+        customDuration ??
+        (newMode === "focus" ? focusDuration : MODES[newMode]);
 
-  const resetTimer = () => {
+      if (newMode === "focus" && customDuration) {
+        setFocusDuration(customDuration);
+      }
+
+      startPhase(newMode, durationSeconds, false);
+    },
+    [focusDuration, startPhase],
+  );
+
+  const toggleTimer = useCallback(() => {
+    setIsActive((prev) => !prev);
+  }, []);
+
+  const resetTimer = useCallback(() => {
     setIsActive(false);
-    setTimeLeft(MODES[mode]);
+    setTimeLeft(mode === "focus" ? focusDuration : MODES[mode]);
     setSessionsCompleted(0);
-  };
+    setPhaseId((prev) => prev + 1);
+    notifiedPhaseRef.current = null;
+  }, [focusDuration, mode]);
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
@@ -42,23 +73,16 @@ export const usePomodoro = () => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0 && isActive) {
-      // Timer finished
       if (mode === "focus") {
-        const newCompleted = sessionsCompleted + 1;
-        setSessionsCompleted(newCompleted);
-
-        if (newCompleted % 4 === 0) {
-          switchMode("longBreak");
-        } else {
-          switchMode("shortBreak");
-        }
+        setSessionsCompleted((prev) => {
+          const newCompleted = prev + 1;
+          const nextMode = newCompleted % 4 === 0 ? "longBreak" : "shortBreak";
+          startPhase(nextMode, MODES[nextMode], true);
+          return newCompleted;
+        });
       } else {
-        // Break finished, back to work
-        switchMode("focus");
+        startPhase("focus", focusDuration, true);
       }
-
-      // Auto-start next phase
-      setIsActive(true);
 
       if (Notification.permission === "granted") {
         new Notification("Time's up!", {
@@ -71,7 +95,16 @@ export const usePomodoro = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActive, timeLeft, mode, sessionsCompleted]);
+  }, [focusDuration, isActive, mode, startPhase, timeLeft]);
+
+  useEffect(() => {
+    if (!onPhaseStart) return;
+    if (!isActive) return;
+    if (notifiedPhaseRef.current === phaseId) return;
+
+    notifiedPhaseRef.current = phaseId;
+    onPhaseStart(mode);
+  }, [isActive, mode, onPhaseStart, phaseId]);
 
   useEffect(() => {
     requestNotificationPermission();

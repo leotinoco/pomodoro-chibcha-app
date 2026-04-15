@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,12 +10,14 @@ import AmbientPlayer from "./AmbientPlayer";
 import axios from "axios";
 import { differenceInMinutes, parseISO } from "date-fns";
 import { AlertTriangle, LogOut } from "lucide-react";
+import { SfxType, useSfx } from "@/hooks/useSfx";
 
 export default function Dashboard() {
   const { data: session } = useSession();
   const [upcomingMeeting, setUpcomingMeeting] = useState<any>(null);
   const [shouldPauseAudio, setShouldPauseAudio] = useState(false);
   const [isDucking, setIsDucking] = useState(false);
+  const { play: playSfx } = useSfx();
 
   useEffect(() => {
     if (!session) return;
@@ -51,30 +53,12 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [session]);
 
-  const handlePlaySfx = (type: "start" | "break" | "longBreak") => {
-    let soundFile = "";
-    switch (type) {
-      case "start":
-        soundFile = "/audio/star.wav";
-        break;
-      case "break":
-        soundFile = "/audio/break.wav";
-        break;
-      case "longBreak":
-        soundFile = "/audio/large-break.wav";
-        break;
-    }
-
-    if (soundFile) {
-      setIsDucking(true);
-      const audio = new Audio(soundFile);
-      audio.volume = 1.0;
-      audio.play().catch((e) => console.error("Error playing SFX:", e));
-      audio.onended = () => {
-        setIsDucking(false);
-      };
-    }
-  };
+  const handlePlaySfx = useCallback(
+    (type: SfxType) => {
+      void playSfx(type, { onDuckingChange: setIsDucking });
+    },
+    [playSfx],
+  );
 
   return (
     <div className="min-h-screen bg-black text-gray-200 p-8 font-sans selection:bg-purple-500/30">

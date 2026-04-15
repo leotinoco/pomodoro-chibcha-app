@@ -79,6 +79,10 @@
 
 5.  Open [http://localhost:3000](http://localhost:3000) and sign in with Google.
 
+## 🔐 Security
+
+See [SECURITY_README.md](./SECURITY_README.md) for secure development practices and local scanning, and [SECURITY.md](./SECURITY.md) for vulnerability reporting guidance.
+
 ## 🔄 Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md) or visit `/changelog` in the app to see the latest updates.
