@@ -37,7 +37,7 @@ export default function Mascot() {
               .body { animation: float 3s ease-in-out infinite; }
               /* The tail animates exactly every 1s to match the timer tick */
               .tail { animation: metronome-tail 1s ease-in-out infinite; transform-origin: 75px 65px; }
-              .ear { animation: ear-twitch 5s infinite; transform-origin: 20px 30px; }
+              .ear { animation: ear-twitch 5s infinite; transform-origin: 35px 45px; }
             `}
           </style>
           
@@ -49,10 +49,12 @@ export default function Mascot() {
             <rect x="25" y="45" width="50" height="35" rx="17.5" fill="#a78bfa" />
             
             {/* Left Ear */}
-            <path className="ear" d="M 30 50 L 25 25 L 45 45 Z" fill="#8b5cf6" />
+            <path className="ear" d="M 28 48 Q 22 30 25 18 Q 35 25 45 45 Z" fill="#8b5cf6" />
+            <path className="ear" d="M 32 44 Q 28 32 30 25 Q 35 32 38 42 Z" fill="#c4b5fd" opacity="0.6" />
             
             {/* Right Ear */}
-            <path d="M 70 50 L 75 25 L 55 45 Z" fill="#8b5cf6" />
+            <path d="M 72 48 Q 78 30 75 18 Q 65 25 55 45 Z" fill="#8b5cf6" />
+            <path d="M 68 44 Q 72 32 70 25 Q 65 32 62 42 Z" fill="#c4b5fd" opacity="0.6" />
             
             {/* Eyes */}
             <circle cx="38" cy="60" r="4.5" fill="#1f2937" className="eye" />
