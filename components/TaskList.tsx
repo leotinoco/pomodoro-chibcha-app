@@ -111,7 +111,7 @@ function SortableTaskItem({
       ref={setRefs}
       {...(isEditing ? {} : attributes)}
       {...(isEditing ? {} : listeners)}
-      className={`group flex items-center gap-3 p-4 bg-neutral-800/40 rounded-xl transition-all border border-transparent ${isCompleted ? "opacity-60" : "hover:bg-neutral-800/80 hover:border-neutral-700"} ${isSubtask ? "ml-8 border-l-2 border-neutral-700" : ""} ${isEditing ? "" : "touch-none"}`}
+      className={`group flex items-start gap-3 p-4 bg-neutral-800/40 rounded-xl transition-all border border-transparent ${isCompleted ? "opacity-60" : "hover:bg-neutral-800/80 hover:border-neutral-700"} ${isSubtask ? "ml-8 border-l-2 border-neutral-700" : ""} ${isEditing ? "" : "touch-none"}`}
     >
       {isSubtask && (
         <CornerDownRight className="w-4 h-4 text-gray-500 -ml-2 mr-1" />
@@ -160,7 +160,7 @@ function SortableTaskItem({
         /* ── Display mode ── */
         <div className="flex-1 min-w-0 pointer-events-none">
           <p
-            className={`text-gray-200 font-medium truncate ${isCompleted ? "line-through text-gray-500" : ""}`}
+            className={`text-gray-200 font-medium break-words ${isCompleted ? "line-through text-gray-500" : ""}`}
           >
             {task.title}
           </p>
@@ -701,7 +701,7 @@ export default function TaskList() {
     return (
       <div
         key={event.id}
-        className={`group flex items-center gap-3 p-4 bg-neutral-800/40 rounded-xl transition-all border border-transparent ${isCompleted ? "opacity-50" : "hover:bg-neutral-800/80 hover:border-neutral-700"}`}
+        className={`group flex items-start gap-3 p-4 bg-neutral-800/40 rounded-xl transition-all border border-transparent ${isCompleted ? "opacity-50" : "hover:bg-neutral-800/80 hover:border-neutral-700"}`}
       >
         {/* Complete event button */}
         <button
@@ -731,7 +731,7 @@ export default function TaskList() {
         ) : (
           <div className="flex-1 min-w-0">
             <p
-              className={`text-gray-200 font-medium truncate ${isCompleted ? "line-through text-gray-500" : ""}`}
+              className={`text-gray-200 font-medium break-words ${isCompleted ? "line-through text-gray-500" : ""}`}
             >
               {event.summary}
             </p>

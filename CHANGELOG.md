@@ -1,4 +1,17 @@
 # Changelog
++
++## [0.5.0] - 2026-05-06
++
++### Features
++
++- **Nueva Mascota Animada**: Integración de "Chibi Pomodoro", una mascota animada en SVG que reacciona visualmente al paso del tiempo (sincronizada con el segundero).
++- **Layout Responsivo**: Optimización del dashboard para mostrar la mascota de forma fluida tanto en PC como en dispositivos móviles.
++
++### Fixes
++
++- **Ajuste de Tareas Largas**: Se eliminó el recorte de texto (`truncate`) en los títulos de tareas y eventos. Ahora el alto de la tarjeta se ajusta automáticamente al contenido.
++- **Alineación de Iconos**: Mejora en la alineación flex de las tarjetas de tareas para mantener los controles en la parte superior cuando el texto es multilínea.
++
 
 ## [0.4.0] - 2026-04-15
 

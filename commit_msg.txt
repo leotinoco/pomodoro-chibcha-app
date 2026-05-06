@@ -1,0 +1,7 @@
+✨ feat: agrega mascota animada y mejora visual de tareas
+
+Se implementa una nueva mascota animada en SVG denominada "Chibi Pomodoro" que se sincroniza visualmente con el segundero del cronómetro.
+Además, se realizan las siguientes mejoras:
+- Se corrige el recorte de texto (truncate) en los títulos de tareas y eventos de calendario, permitiendo que las tarjetas ajusten su altura automáticamente.
+- Se mejora la alineación de los elementos en la lista de tareas para una mejor visualización en múltiples líneas.
+- Se actualiza la versión del proyecto a v0.5.0 en package.json, Dashboard y CHANGELOG.md.

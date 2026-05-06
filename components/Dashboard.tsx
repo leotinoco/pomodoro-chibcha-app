@@ -7,6 +7,7 @@ import Image from "next/image";
 import TaskList from "./TaskList";
 import PomodoroTimer from "./PomodoroTimer";
 import AmbientPlayer from "./AmbientPlayer";
+import Mascot from "./Mascot";
 import axios from "axios";
 import { differenceInMinutes, parseISO } from "date-fns";
 import { AlertTriangle, LogOut } from "lucide-react";
@@ -146,6 +147,7 @@ export default function Dashboard() {
               shouldPause={shouldPauseAudio}
               isDucking={isDucking}
             />
+            <Mascot />
           </div>
 
           {/* Right Column: Tasks (8 columns) */}
@@ -163,7 +165,7 @@ export default function Dashboard() {
             href="/changelog"
             className="hover:text-blue-400 transition-colors underline decoration-gray-700 hover:decoration-blue-400"
           >
-            Ver Novedades (v0.1.0)
+            Ver Novedades (v0.5.0)
           </Link>
           <span className="text-gray-700 hidden sm:inline">•</span>
           <Link
