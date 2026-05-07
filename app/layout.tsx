@@ -51,9 +51,6 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://pomodoro.chibcha.club",
   },
-  verification: {
-    yandex: "9bca7cf95679ce05",
-  },
 };
 
 const jsonLd = {
