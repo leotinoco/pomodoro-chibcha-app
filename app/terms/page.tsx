@@ -1,9 +1,19 @@
 import { FileText, CheckCircle, AlertTriangle, Music } from "lucide-react";
 import Link from "next/link";
 
-export const metadata = {
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "Términos de Servicio | Pomodoro Chibcha App",
   description: "Términos y condiciones para el uso de Pomodoro Chibcha App.",
+  alternates: {
+    canonical: "https://pomodoro.chibcha.club/terms",
+  },
+  openGraph: {
+    title: "Términos de Servicio | Pomodoro Chibcha App",
+    description: "Términos y condiciones para el uso de Pomodoro Chibcha App.",
+    url: "https://pomodoro.chibcha.club/terms",
+  },
 };
 
 export default function TermsOfService() {

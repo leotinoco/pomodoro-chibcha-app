@@ -15,9 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://pomodoro.chibcha.club"),
   title: "Pomodoro Chibcha - Focus & Productivity",
   description:
     "Boost your productivity with Pomodoro Chibcha. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
+  keywords: ["pomodoro", "productivity", "google tasks", "google calendar", "focus", "study timer", "lofi"],
+  authors: [{ name: "Chibcha Club", url: "https://chibcha.club" }],
   icons: {
     icon: "/favicon.avif",
   },
@@ -25,7 +28,7 @@ export const metadata: Metadata = {
     title: "Pomodoro Chibcha - Focus & Productivity",
     description:
       "Boost your productivity with Pomodoro Chibcha. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
-    url: "https://pomodoro-chibcha-app.vercel.app",
+    url: "https://pomodoro.chibcha.club",
     siteName: "Pomodoro Chibcha",
     images: [
       {
@@ -45,6 +48,9 @@ export const metadata: Metadata = {
       "Boost your productivity with Pomodoro Chibcha. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
     images: ["/online-pomodoro-google-integration.png"],
   },
+  alternates: {
+    canonical: "https://pomodoro.chibcha.club",
+  },
 };
 
 const jsonLd = {
@@ -53,6 +59,7 @@ const jsonLd = {
   name: "Pomodoro Chibcha",
   applicationCategory: "ProductivityApplication",
   operatingSystem: "Web",
+  url: "https://pomodoro.chibcha.club",
   offers: {
     "@type": "Offer",
     price: "0",
@@ -61,7 +68,7 @@ const jsonLd = {
   description:
     "A comprehensive productivity tool combining Pomodoro technique, task management, and calendar integration.",
   image:
-    "https://pomodoro-chibcha-app.vercel.app/online-pomodoro-google-integration.png",
+    "https://pomodoro.chibcha.club/online-pomodoro-google-integration.png",
 };
 
 export default function RootLayout({
@@ -70,7 +77,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning

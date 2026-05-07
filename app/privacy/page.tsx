@@ -1,9 +1,19 @@
 import { Shield, Lock, Eye, Database } from "lucide-react";
 import Link from "next/link";
 
-export const metadata = {
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "Política de Privacidad | Pomodoro Chibcha App",
   description: "Política de Privacidad para el uso de Pomodoro Chibcha App y sus integraciones con Google.",
+  alternates: {
+    canonical: "https://pomodoro.chibcha.club/privacy",
+  },
+  openGraph: {
+    title: "Política de Privacidad | Pomodoro Chibcha App",
+    description: "Política de Privacidad para el uso de Pomodoro Chibcha App y sus integraciones con Google.",
+    url: "https://pomodoro.chibcha.club/privacy",
+  },
 };
 
 export default function PrivacyPolicy() {

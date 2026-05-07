@@ -4,6 +4,20 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Changelog | Pomodoro Chibcha App",
+  description: "Registro de cambios, actualizaciones y nuevas características de Pomodoro Chibcha App.",
+  alternates: {
+    canonical: "https://pomodoro.chibcha.club/changelog",
+  },
+  openGraph: {
+    title: "Changelog | Pomodoro Chibcha App",
+    description: "Registro de cambios, actualizaciones y nuevas características de Pomodoro Chibcha App.",
+    url: "https://pomodoro.chibcha.club/changelog",
+  },
+};
 
 async function getChangelogContent() {
   try {
