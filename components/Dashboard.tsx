@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,39 +13,94 @@ import { differenceInMinutes, parseISO } from "date-fns";
 import { AlertTriangle, LogOut } from "lucide-react";
 import { SfxType, useSfx } from "@/hooks/useSfx";
 
+interface CalendarEvent {
+  summary: string;
+  start: {
+    dateTime: string;
+  };
+}
+
+interface CalendarState {
+  upcomingMeeting: CalendarEvent | null;
+  shouldPauseAudio: boolean;
+  loading: boolean;
+  error: string | null;
+}
+
+type CalendarAction =
+  | { type: "FETCH_START" }
+  | { type: "FETCH_SUCCESS"; payload: { meeting: CalendarEvent | null; shouldPause: boolean } }
+  | { type: "FETCH_ERROR"; payload: string };
+
+const initialState: CalendarState = {
+  upcomingMeeting: null,
+  shouldPauseAudio: false,
+  loading: false,
+  error: null,
+};
+
+function calendarReducer(state: CalendarState, action: CalendarAction): CalendarState {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, loading: true, error: null };
+    case "FETCH_SUCCESS":
+      return {
+        ...state,
+        loading: false,
+        upcomingMeeting: action.payload.meeting,
+        shouldPauseAudio: action.payload.shouldPause,
+        error: null,
+      };
+    case "FETCH_ERROR":
+      return { ...state, loading: false, error: action.payload };
+    default:
+      return state;
+  }
+}
+
 export default function Dashboard() {
   const { data: session } = useSession();
-  const [upcomingMeeting, setUpcomingMeeting] = useState<any>(null);
-  const [shouldPauseAudio, setShouldPauseAudio] = useState(false);
+  const [state, dispatch] = useReducer(calendarReducer, initialState);
   const [isDucking, setIsDucking] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { play: playSfx } = useSfx();
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!session) return;
 
     const checkCalendar = async () => {
+      dispatch({ type: "FETCH_START" });
       try {
         const res = await axios.get("/api/calendar");
         const events = res.data.events || [];
         const now = new Date();
 
         const bufferTime = 10; // minutes
-        const nextMeeting = events.find((event: any) => {
+        const nextMeeting = events.find((event: CalendarEvent) => {
           if (!event.start.dateTime) return false;
           const start = parseISO(event.start.dateTime);
           const diff = differenceInMinutes(start, now);
           return diff >= 0 && diff <= bufferTime;
         });
 
-        if (nextMeeting) {
-          setUpcomingMeeting(nextMeeting);
-          setShouldPauseAudio(true);
-        } else {
-          setUpcomingMeeting(null);
-          setShouldPauseAudio(false);
-        }
+        dispatch({
+          type: "FETCH_SUCCESS",
+          payload: {
+            meeting: nextMeeting || null,
+            shouldPause: !!nextMeeting,
+          },
+        });
       } catch (error) {
-        console.error("Failed to check calendar", error);
+        dispatch({
+          type: "FETCH_ERROR",
+          payload: error instanceof Error ? error.message : "Failed to check calendar",
+        });
       }
     };
 
@@ -62,20 +117,21 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-black text-gray-200 p-8 font-sans selection:bg-purple-500/30">
+    <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans selection:bg-purple-500/30">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10">
+            <div className="relative size-10">
               <Image
                 src="/logo-pomodoro.avif"
                 alt="Pomodoro Chibcha Logo"
                 fill
+                sizes="(max-width: 768px) 40px, 40px"
                 className="object-contain"
               />
             </div>
-            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+            <h1 className="text-2xl font-semibold text-white">
               Pomodoro & Dashboard
             </h1>
           </div>
@@ -83,40 +139,41 @@ export default function Dashboard() {
           {session ? (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-4">
-                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-neutral-800">
+                <div className="relative size-10 rounded-full overflow-hidden border-2 border-zinc-800">
                   {session.user?.image ? (
                     <Image
                       src={session.user.image}
                       alt="Profile"
                       fill
+                      sizes="(max-width: 768px) 40px, 40px"
                       className="object-cover"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-full h-full bg-neutral-800 flex items-center justify-center text-white font-bold">
+                    <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-white font-semibold">
                       {session.user?.name?.charAt(0) || "?"}
                     </div>
                   )}
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-semibold text-white">
                     {session.user?.name?.split(" ")[0]}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => signOut()}
-                className="p-2 text-gray-500 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors"
+                className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
                 aria-label="Sign out"
                 title="Sign out"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="size-5" />
               </button>
             </div>
           ) : (
             <button
               onClick={() => signIn("google")}
-              className="px-6 py-2 bg-white text-black rounded-full font-bold text-sm hover:scale-105 transition-transform"
+              className="px-6 py-2 bg-white text-black rounded-full font-semibold text-sm hover:scale-105 transition-transform"
             >
               Sign in with Google
             </button>
@@ -124,12 +181,12 @@ export default function Dashboard() {
         </header>
 
         {/* Meeting Alert */}
-        {upcomingMeeting && (
+        {state.upcomingMeeting && (
           <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl flex items-center gap-4 animate-pulse">
-            <AlertTriangle className="w-6 h-6 text-red-500" />
+            <AlertTriangle className="size-6 text-red-500" />
             <div>
-              <h3 className="font-bold text-white">
-                Upcoming Meeting: {upcomingMeeting.summary}
+              <h3 className="font-semibold text-white">
+                Upcoming Meeting: {state.upcomingMeeting.summary}
               </h3>
               <p className="text-red-400 text-sm">
                 Starts in less than 10 minutes. Audio paused.
@@ -144,7 +201,7 @@ export default function Dashboard() {
           <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
             <PomodoroTimer onPlaySfx={handlePlaySfx} />
             <AmbientPlayer
-              shouldPause={shouldPauseAudio}
+              shouldPause={state.shouldPauseAudio}
               isDucking={isDucking}
             />
             <Mascot />
@@ -158,26 +215,58 @@ export default function Dashboard() {
       </div>
 
       {/* Footer */}
-      <footer className="text-center py-12 mt-20 text-gray-500 text-sm space-y-2">
-        <p>&copy; {new Date().getFullYear()} Pomodoro Chibcha App.</p>
+      <footer className="text-center py-12 mt-20 text-zinc-500 text-sm space-y-4">
+        <div className="space-y-2">
+          <p className="font-semibold text-zinc-400">Aplicaciones</p>
+          <div className="flex flex-col items-center gap-2">
+            <a
+              href="https://costosabc.website"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition-colors underline decoration-zinc-700 hover:decoration-cyan-400"
+            >
+              Costos ABC para Empresas de Servicios Públicos Domiciliarios
+            </a>
+            <a
+              href="https://riesgopsicosocial.xyz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-rose-400 transition-colors underline decoration-zinc-700 hover:decoration-rose-400"
+            >
+              Herramienta para la medición del Riesgo Psicosocial en empresas
+            </a>
+            <a
+              href="https://chibcha.club"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-amber-400 transition-colors underline decoration-zinc-700 hover:decoration-amber-400"
+            >
+              Conocer más apps
+            </a>
+          </div>
+        </div>
+
+        {mounted && (
+          <p className="pt-4">&copy; {new Date().getFullYear()} Pomodoro Chibcha App.</p>
+        )}
         <div className="flex items-center justify-center flex-wrap gap-4 mt-2">
           <Link
             href="/changelog"
-            className="hover:text-blue-400 transition-colors underline decoration-gray-700 hover:decoration-blue-400"
+            className="hover:text-blue-400 transition-colors underline decoration-zinc-700 hover:decoration-blue-400"
           >
             Ver Novedades (v0.5.0)
           </Link>
-          <span className="text-gray-700 hidden sm:inline">•</span>
+          <span className="text-zinc-700 hidden sm:inline">•</span>
           <Link
             href="/privacy"
-            className="hover:text-emerald-400 transition-colors underline decoration-gray-700 hover:decoration-emerald-400"
+            className="hover:text-emerald-400 transition-colors underline decoration-zinc-700 hover:decoration-emerald-400"
           >
             Política de Privacidad
           </Link>
-          <span className="text-gray-700 hidden sm:inline">•</span>
+          <span className="text-zinc-700 hidden sm:inline">•</span>
           <Link
             href="/terms"
-            className="hover:text-purple-400 transition-colors underline decoration-gray-700 hover:decoration-purple-400"
+            className="hover:text-purple-400 transition-colors underline decoration-zinc-700 hover:decoration-purple-400"
           >
             Términos de Servicio
           </Link>
