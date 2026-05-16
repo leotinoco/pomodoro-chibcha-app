@@ -215,39 +215,9 @@ export default function Dashboard() {
       </div>
 
       {/* Footer */}
-      <footer className="text-center py-12 mt-20 text-zinc-500 text-sm space-y-4">
-        <div className="space-y-2">
-          <p className="font-semibold text-zinc-400">Aplicaciones</p>
-          <div className="flex flex-col items-center gap-2">
-            <a
-              href="https://costosabc.website"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-cyan-400 transition-colors underline decoration-zinc-700 hover:decoration-cyan-400"
-            >
-              Costos ABC para Empresas de Servicios Públicos Domiciliarios
-            </a>
-            <a
-              href="https://riesgopsicosocial.xyz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-rose-400 transition-colors underline decoration-zinc-700 hover:decoration-rose-400"
-            >
-              Herramienta para la medición del Riesgo Psicosocial en empresas
-            </a>
-            <a
-              href="https://chibcha.club"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-amber-400 transition-colors underline decoration-zinc-700 hover:decoration-amber-400"
-            >
-              Conocer más apps
-            </a>
-          </div>
-        </div>
-
+      <footer className="text-center py-12 mt-20 text-zinc-500 text-sm">
         {mounted && (
-          <p className="pt-4">&copy; {new Date().getFullYear()} Pomodoro Chibcha App.</p>
+          <p>&copy; {new Date().getFullYear()} Pomodoro Chibcha App.</p>
         )}
         <div className="flex items-center justify-center flex-wrap gap-4 mt-2">
           <Link
