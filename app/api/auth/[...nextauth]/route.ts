@@ -90,9 +90,7 @@ export const authOptions: NextAuthOptions = {
       return refreshAccessToken(token);
     },
     async session({ session, token }) {
-      if (token.error === "RefreshAccessTokenError") {
-        throw new Error("Session expired, please login again");
-      }
+      session.error = token.error as string | undefined;
       if (token.picture) {
         session.user = { ...(session.user ?? {}), image: token.picture };
       }
