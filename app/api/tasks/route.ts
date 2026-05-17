@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
     let targetTaskListId = tasklist;
     if (!targetTaskListId) {
       const taskLists = await service.tasklists.list();
-      targetTaskListId = taskLists.data.items?.[0]?.id;
+      targetTaskListId = taskLists.data.items?.[0]?.id ?? undefined;
     }
 
     const response = await service.tasks.insert({
