@@ -260,7 +260,7 @@ export default function TaskList() {
 
   // Load tasks on mount or session change
   useEffect(() => {
-    if (session?.accessToken) {
+    if (session) {
       fetchTasks();
     } else {
       // Load local tasks
@@ -276,7 +276,7 @@ export default function TaskList() {
         setTasks([]);
       }
     }
-  }, [session?.accessToken]);
+  }, [session]);
 
   const saveLocalTasks = (newTasks: Task[]) => {
     setTasks(newTasks);
@@ -429,7 +429,7 @@ export default function TaskList() {
       !newEventSummary.trim() ||
       !newEventDate ||
       !newEventTime ||
-      !session?.accessToken
+      !session
     )
       return;
 
@@ -464,7 +464,7 @@ export default function TaskList() {
   };
 
   const fetchTasks = async () => {
-    if (!session?.accessToken) return;
+    if (!session) return;
     setLoading(true);
     try {
       const res = await axios.get("/api/tasks");

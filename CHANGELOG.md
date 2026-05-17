@@ -2,36 +2,28 @@
 
 ## [0.6.0] - 2026-05-17
 
-### Seguridad
+### <!--icon:shield--> Seguridad
 
-- **Validación de esquemas con Zod**: Todas las rutas de API (`/api/calendar`, `/api/tasks`) ahora validan tipos, longitudes y formatos de fecha antes de procesar solicitudes.
-- **Headers de seguridad mejorados**: Añadidos `Content-Security-Policy` (CSP), `Strict-Transport-Security` (HSTS) y `Permissions-Policy` en `next.config.ts`.
-- **Rate limiting**: Middleware implementado para limitar peticiones a 30 req/min por IP en rutas `/api/*`.
-- **Token de acceso protegido**: Se eliminó la exposición del `accessToken` en la sesión del cliente. Las rutas API ahora obtienen el token directamente del JWT del servidor.
-- **Re-login forzado**: Cuando el `refreshToken` expira, la sesión se invalida correctamente en lugar de mantener un estado erróneo silencioso.
-- **Manejo de errores estandarizado**: Las respuestas de error ya no filtran mensajes internos ni stack traces al frontend.
-- **Escaneo de secretos mejorado**: Nuevos patrones para detectar `NEXTAUTH_SECRET`, Google Client ID y Google OAuth Client Secret.
-- **Scope de Google Calendar corregido**: Cambiado de `calendar.readonly` a `calendar` para coincidir con las operaciones de escritura (POST/PATCH).
+- **Protección reforzada contra amenazas web**: Nuevas políticas de seguridad que protegen tu navegación y datos personales.
+- **Escudo protector contra accesos no autorizados**: Sistema que limita peticiones excesivas y previene abusos.
+- **Cifrado avanzado de tu identidad digital**: Tu información de sesión ahora se maneja de forma más segura.
+- **Gestión de sesiones más robusta**: Cuando tu sesión expira, se te redirige automáticamente de forma segura.
+- **Respuestas de error seguras**: Los mensajes de error ya no exponen información técnica interna.
+- **Detección proactiva de vulnerabilidades**: Mejorado el escaneo automático de credenciales en el repositorio.
+- **Permisos optimizados para Google Calendar**: Ajustados los permisos para mayor seguridad y funcionalidad.
 
-### Refactorización
+### <!--icon:gear--> Mejoras Internas
 
-- **Estado del Dashboard optimizado**: Reemplazados múltiples `useState` por un único `useReducer` con `CalendarState` tipado para la lógica del calendario.
-- **Paleta de colores estandarizada**: Reemplazada familia `gray` por `zinc` en todo el Dashboard para un aspecto más profesional.
-- **Shorthands de tamaño aplicados**: `w-10 h-10` → `size-10`, `w-5 h-5` → `size-5`, `w-6 h-6` → `size-6`.
-- **Tipografía refinada**: `font-bold` → `font-semibold` en encabezados para mejor legibilidad en pantallas de alta densidad.
-- **Imágenes optimizadas**: Añadido atributo `sizes` a componentes `<Image fill>` para mejorar LCP.
-- **Corrección de hidratación**: `new Date()` envuelto en estado `mounted` para evitar inconsistencias SSR/CSR.
+- **Dashboard más rápido y responsivo**: Optimizada la estructura interna para un rendimiento superior.
+- **Paleta de colores refinada**: Actualizados los tonos neutros para un aspecto más profesional.
+- **Tipografía refinada**: Ajustado el peso de las fuentes para mejor legibilidad.
+- **Imágenes optimizadas**: Mejorada la carga visual para un rendimiento superior.
+- **Experiencia visual más fluida**: Eliminados parpadeos al cargar la fecha del footer.
 
-### Cambios visuales
+### <!--icon:palette--> Estilo Visual
 
-- **Footer simplificado**: Eliminada la sección "Aplicaciones" y sus links externos del footer del Dashboard.
-- **Gradiente eliminado**: Título del Dashboard ahora usa color sólido blanco en lugar de gradiente.
-
-### Dependencias
-
-- **Zod** añadido para validación de esquemas.
-- **Next.js** actualizado a `16.2.6`.
-- **eslint-config-next** actualizado a `16.2.6`.
+- **Footer simplificado**: Diseño más limpio sin enlaces externos.
+- **Título con diseño más limpio**: El encabezado del Dashboard ahora es más legible.
 
 ---
 
