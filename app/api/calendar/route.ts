@@ -1,16 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { getGoogleClient } from "@/lib/google";
 import { google } from "googleapis";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { z } from "zod";
 
-export async function GET(_req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) {
+const calendarEventSchema = z.object({
+  summary: z.string().min(1).max(500).trim(),
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+}).refine((data) => new Date(data.end) > new Date(data.start), {
+  message: "end must be after start",
+});
+
+const calendarPatchSchema = z.object({
+  eventId: z.string().min(1),
+  summary: z.string().min(1).max(500).trim(),
+});
+
+function sanitizeError() {
+  return { error: "Internal server error" };
+}
+
+export async function GET(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const auth = getGoogleClient(session.accessToken);
+  const auth = getGoogleClient(token.accessToken as string);
   const calendar = google.calendar({ version: "v3", auth });
 
   try {
@@ -32,29 +49,34 @@ export async function GET(_req: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching calendar events:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch events" },
-      { status: 500 },
-    );
+    return NextResponse.json(sanitizeError(), { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { summary, start, end } = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
-  if (!summary || !start || !end) {
+  const parsed = calendarEventSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Missing required fields" },
+      { error: "Invalid input", details: parsed.error.flatten() },
       { status: 400 },
     );
   }
 
-  const auth = getGoogleClient(session.accessToken);
+  const { summary, start, end } = parsed.data;
+
+  const auth = getGoogleClient(token.accessToken as string);
   const calendar = google.calendar({ version: "v3", auth });
 
   try {
@@ -68,34 +90,36 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Error creating calendar event";
-    const details =
-      process.env.NODE_ENV !== "production" ? { details: message } : {};
-    console.error("Error creating calendar event:", message);
-    return NextResponse.json(
-      { error: "Failed to create event", ...details },
-      { status: 500 },
-    );
+  } catch (error) {
+    console.error("Error creating calendar event:", error);
+    return NextResponse.json(sanitizeError(), { status: 500 });
   }
 }
+
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { eventId, summary } = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
-  if (!eventId || !summary) {
+  const parsed = calendarPatchSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Missing required fields: eventId and summary" },
+      { error: "Invalid input", details: parsed.error.flatten() },
       { status: 400 },
     );
   }
 
-  const auth = getGoogleClient(session.accessToken);
+  const { eventId, summary } = parsed.data;
+
+  const auth = getGoogleClient(token.accessToken as string);
   const calendar = google.calendar({ version: "v3", auth });
 
   try {
@@ -106,15 +130,8 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Error updating calendar event";
-    const details =
-      process.env.NODE_ENV !== "production" ? { details: message } : {};
-    console.error("Error updating calendar event:", message);
-    return NextResponse.json(
-      { error: "Failed to update event", ...details },
-      { status: 500 },
-    );
+  } catch (error) {
+    console.error("Error updating calendar event:", error);
+    return NextResponse.json(sanitizeError(), { status: 500 });
   }
 }

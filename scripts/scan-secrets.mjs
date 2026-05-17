@@ -48,6 +48,18 @@ const patterns = [
     name: "DB URL",
     re: /\b(postgres(ql)?:\/\/|mongodb(\+srv)?:\/\/|mysql:\/\/)\S+/gi,
   },
+  {
+    name: "NEXTAUTH_SECRET",
+    re: /NEXTAUTH_SECRET\s*=\s*["']?[A-Za-z0-9+/=]{32,}["']?/g,
+  },
+  {
+    name: "Google Client ID",
+    re: /\b\d+-[a-z0-9]{32}\.apps\.googleusercontent\.com\b/g,
+  },
+  {
+    name: "Google OAuth Client Secret",
+    re: /GOCSPX-[A-Za-z0-9_-]{20,}/g,
+  },
 ];
 
 const blockedPathPatterns = [

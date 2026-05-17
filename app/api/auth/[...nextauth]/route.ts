@@ -24,14 +24,19 @@ async function refreshAccessToken(token: JWT) {
     const refreshedTokens = await response.json();
 
     if (!response.ok) {
-      throw refreshedTokens;
+      return {
+        ...token,
+        accessToken: undefined,
+        accessTokenExpires: 0,
+        error: "RefreshAccessTokenError",
+      };
     }
 
     return {
       ...token,
       accessToken: refreshedTokens.access_token,
       accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
-      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken, // Fallback to old refresh token
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
     };
   } catch (error) {
     const message =
@@ -54,7 +59,7 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope:
-            "openid email profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks",
+            "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks",
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
@@ -85,8 +90,9 @@ export const authOptions: NextAuthOptions = {
       return refreshAccessToken(token);
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken;
-      session.error = token.error;
+      if (token.error === "RefreshAccessTokenError") {
+        throw new Error("Session expired, please login again");
+      }
       if (token.picture) {
         session.user = { ...(session.user ?? {}), image: token.picture };
       }

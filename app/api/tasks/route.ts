@@ -1,20 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { getGoogleClient } from "@/lib/google";
 import { google } from "googleapis";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { z } from "zod";
 
-export async function GET(_req: NextRequest) {
-  const session = await getServerSession(authOptions); // Type assertion if needed or valid config
-  if (!session?.accessToken) {
+const taskPatchSchema = z.object({
+  tasklist: z.string().min(1),
+  task: z.string().min(1),
+  status: z.enum(["needsAction", "completed"]).optional(),
+  parent: z.string().optional().nullable(),
+  previous: z.string().optional().nullable(),
+  due: z.string().datetime().optional().nullable(),
+  title: z.string().min(1).max(1024).trim().optional(),
+});
+
+const taskCreateSchema = z.object({
+  tasklist: z.string().optional(),
+  title: z.string().min(1).max(1024).trim(),
+  status: z.enum(["needsAction", "completed"]).optional(),
+  due: z.string().datetime().optional().nullable(),
+});
+
+function sanitizeError() {
+  return { error: "Internal server error" };
+}
+
+export async function GET(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const auth = getGoogleClient(session.accessToken);
+  const auth = getGoogleClient(token.accessToken as string);
   const service = google.tasks({ version: "v1", auth });
 
   try {
-    // Get the first task list for simplicity, or handle multiple lists
     const response = await service.tasklists.list();
     const taskLists = response.data.items;
 
@@ -26,7 +46,7 @@ export async function GET(_req: NextRequest) {
 
     const tasksResponse = await service.tasks.list({
       tasklist: firstListId,
-      showCompleted: false, // Only show active tasks
+      showCompleted: false,
       showHidden: false,
     });
 
@@ -36,38 +56,47 @@ export async function GET(_req: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching tasks:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch tasks" },
-      { status: 500 },
-    );
+    return NextResponse.json(sanitizeError(), { status: 500 });
   }
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { tasklist, task, status, parent, previous, due, title } =
-    await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
-  const auth = getGoogleClient(session.accessToken);
+  const parsed = taskPatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid input", details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const { tasklist, task, status, parent, previous, due, title } = parsed.data;
+
+  const auth = getGoogleClient(token.accessToken as string);
   const service = google.tasks({ version: "v1", auth });
 
   try {
-    // If 'parent' or 'previous' is provided, we use the 'move' endpoint
     if (parent !== undefined || previous !== undefined) {
       const moveResponse = await service.tasks.move({
         tasklist,
         task,
-        parent: parent || undefined, // If null/empty, it moves to root (usually)
+        parent: parent || undefined,
         previous: previous || undefined,
       });
       return NextResponse.json(moveResponse.data);
     }
 
-    // Otherwise, we simply patch the task properties (like status or title)
     const response = await service.tasks.patch({
       tasklist,
       task,
@@ -79,34 +108,39 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Error updating task (Google API)";
-    const details =
-      process.env.NODE_ENV !== "production" ? { details: message } : {};
-    console.error("Error updating task (Google API):", message);
-    return NextResponse.json(
-      { error: "Failed to update task", ...details },
-      { status: 500 },
-    );
+  } catch (error) {
+    console.error("Error updating task (Google API):", error);
+    return NextResponse.json(sanitizeError(), { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { tasklist, title, status, due } = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
-  const auth = getGoogleClient(session.accessToken);
+  const parsed = taskCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid input", details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const { tasklist, title, status, due } = parsed.data;
+
+  const auth = getGoogleClient(token.accessToken as string);
   const service = google.tasks({ version: "v1", auth });
 
   try {
-    // If no tasklist provided, use the first one (or default)
     let targetTaskListId = tasklist;
     if (!targetTaskListId) {
       const taskLists = await service.tasklists.list();
@@ -117,7 +151,7 @@ export async function POST(req: NextRequest) {
       tasklist: targetTaskListId,
       requestBody: {
         title,
-        status, // 'needsAction' or 'completed'
+        status,
         due,
       },
     });
@@ -125,9 +159,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(response.data);
   } catch (error) {
     console.error("Error creating task:", error);
-    return NextResponse.json(
-      { error: "Failed to create task" },
-      { status: 500 },
-    );
+    return NextResponse.json(sanitizeError(), { status: 500 });
   }
 }
