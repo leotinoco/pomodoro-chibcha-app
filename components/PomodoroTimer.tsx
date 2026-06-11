@@ -10,14 +10,20 @@ import {
   Utensils,
   Brain,
   Zap,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useEffect } from "react";
 
 export default function PomodoroTimer({
   onPlaySfx,
+  sfxVolume,
+  onSfxVolumeChange,
 }: {
   onPlaySfx: (type: SfxType) => void;
+  sfxVolume: number;
+  onSfxVolumeChange: (volume: number) => void;
 }) {
   const {
     mode,
@@ -122,6 +128,25 @@ export default function PomodoroTimer({
         >
           <RotateCcw className="w-6 h-6" />
         </button>
+      </div>
+
+      {/* Volume Control */}
+      <div className="mt-6 flex items-center gap-2 group">
+        {sfxVolume === 0 ? (
+          <VolumeX className="w-5 h-5 text-gray-500" />
+        ) : (
+          <Volume2 className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+        )}
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={sfxVolume}
+          onChange={(e) => onSfxVolumeChange(parseFloat(e.target.value))}
+          className="w-24 h-1.5 bg-neutral-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125 hover:bg-neutral-600"
+          aria-label="Notification volume"
+        />
       </div>
 
       {/* Quick Duration Toggles for Focus */}

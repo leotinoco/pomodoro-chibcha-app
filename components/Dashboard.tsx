@@ -64,12 +64,25 @@ export default function Dashboard() {
   const [isDucking, setIsDucking] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { play: playSfx } = useSfx();
+  const [sfxVolume, setSfxVolume] = useState(0.5);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setMounted(true);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sfxVolume");
+    if (saved !== null) {
+      setSfxVolume(parseFloat(saved));
+    }
+  }, []);
+
+  const handleSfxVolumeChange = (newVolume: number) => {
+    setSfxVolume(newVolume);
+    localStorage.setItem("sfxVolume", newVolume.toString());
+  };
 
   useEffect(() => {
     if (!session) return;
@@ -111,9 +124,9 @@ export default function Dashboard() {
 
   const handlePlaySfx = useCallback(
     (type: SfxType) => {
-      void playSfx(type, { onDuckingChange: setIsDucking });
+      void playSfx(type, { volume: sfxVolume, onDuckingChange: setIsDucking });
     },
-    [playSfx],
+    [playSfx, sfxVolume],
   );
 
   return (
@@ -199,7 +212,11 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Timer & Ambient (4 columns) */}
           <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
-            <PomodoroTimer onPlaySfx={handlePlaySfx} />
+            <PomodoroTimer
+              onPlaySfx={handlePlaySfx}
+              sfxVolume={sfxVolume}
+              onSfxVolumeChange={handleSfxVolumeChange}
+            />
             <AmbientPlayer
               shouldPause={state.shouldPauseAudio}
               isDucking={isDucking}
