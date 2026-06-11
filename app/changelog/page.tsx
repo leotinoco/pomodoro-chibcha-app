@@ -73,7 +73,7 @@ export default async function ChangelogPage() {
             <ArrowLeft className="size-5" />
             <span>Back to App</span>
           </Link>
-          <span className="text-sm font-medium text-zinc-500">v0.6.0</span>
+          <span className="text-sm font-medium text-zinc-500">v0.7.0</span>
         </div>
       </header>
 

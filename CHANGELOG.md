@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0] - 2026-06-11
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Barra de volumen para notificaciones**: Se agrega un control deslizante de volumen para los sonidos de inicio de tarea y descansos del temporizador Pomodoro, con persistencia en `localStorage`, replicando el diseño del reproductor de música.
+
+---
+
 ## [0.6.0] - 2026-05-17
 
 ### <!--icon:shield--> Seguridad
