@@ -53,7 +53,7 @@ export default function PomodoroTimer({
   }, [timeLeft]);
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-neutral-900/50 backdrop-blur-md rounded-3xl border border-neutral-800 shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center p-8 pb-12 bg-neutral-900/50 backdrop-blur-md rounded-3xl border border-neutral-800 shadow-2xl relative overflow-hidden">
       {/* Decorative Glow */}
       <div
         className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${mode === "focus" ? "from-blue-500 to-purple-500" : "from-green-400 to-emerald-600"}`}
@@ -131,22 +131,25 @@ export default function PomodoroTimer({
       </div>
 
       {/* Volume Control */}
-      <div className="mt-6 flex items-center gap-2 group">
-        {sfxVolume === 0 ? (
-          <VolumeX className="w-5 h-5 text-gray-500" />
-        ) : (
-          <Volume2 className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-        )}
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={sfxVolume}
-          onChange={(e) => onSfxVolumeChange(parseFloat(e.target.value))}
-          className="w-24 h-1.5 bg-neutral-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125 hover:bg-neutral-600"
-          aria-label="Notification volume"
-        />
+      <div className="mt-6 flex flex-col items-center gap-1.5">
+        <div className="flex items-center gap-2 group">
+          {sfxVolume === 0 ? (
+            <VolumeX className="w-5 h-5 text-gray-500" />
+          ) : (
+            <Volume2 className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+          )}
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={sfxVolume}
+            onChange={(e) => onSfxVolumeChange(parseFloat(e.target.value))}
+            className="w-24 h-1.5 bg-neutral-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125 hover:bg-neutral-600"
+            aria-label="Notification volume"
+          />
+        </div>
+        <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Vol. Alarma</span>
       </div>
 
       {/* Quick Duration Toggles for Focus */}

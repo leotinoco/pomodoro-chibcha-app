@@ -22,6 +22,7 @@ import {
   Pencil,
   Check,
   X,
+  Mic,
 } from "lucide-react";
 import {
   DndContext,
@@ -257,6 +258,37 @@ export default function TaskList() {
       },
     }),
   );
+
+  const startVoiceTyping = (setter: React.Dispatch<React.SetStateAction<string>>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("La API de Web Speech no está soportada en este navegador.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-CO';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setter((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onerror = (event: any) => {
+      if (event.error === 'not-allowed') {
+        alert("El acceso al micrófono fue denegado. Por favor, permite el uso del micrófono en la configuración de tu navegador (el ícono del candado en la barra de direcciones) y recarga la página.");
+      } else {
+        console.warn("Aviso en reconocimiento de voz:", event.error);
+      }
+    };
+
+    recognition.start();
+  };
 
   // Load tasks on mount or session change
   useEffect(() => {
@@ -814,20 +846,30 @@ export default function TaskList() {
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
               placeholder="Add a new task..."
-              className="w-full bg-neutral-800/60 text-white placeholder-gray-500 rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+              className="w-full bg-neutral-800/60 text-white placeholder-gray-500 rounded-xl py-3 pl-4 pr-20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
               disabled={isAdding}
             />
-            <button
-              type="submit"
-              disabled={!newTask.trim() || isAdding}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
-            >
-              {isAdding ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
-            </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => startVoiceTyping(setNewTask)}
+                className="p-1.5 text-gray-400 hover:text-blue-400 transition-colors"
+                title="Dictar por voz"
+              >
+                <Mic className="w-4 h-4" />
+              </button>
+              <button
+                type="submit"
+                disabled={!newTask.trim() || isAdding}
+                className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
+              >
+                {isAdding ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </div>
           <input
             type="date"
@@ -941,14 +983,24 @@ export default function TaskList() {
               onSubmit={handleAddEvent}
               className="space-y-3 bg-neutral-800/20 p-4 rounded-xl border border-neutral-800/50"
             >
-              <input
-                type="text"
-                value={newEventSummary}
-                onChange={(e) => setNewEventSummary(e.target.value)}
-                placeholder="Event Title..."
-                className="w-full bg-neutral-800/60 text-white placeholder-gray-500 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all text-sm"
-                disabled={isAddingEvent}
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={newEventSummary}
+                  onChange={(e) => setNewEventSummary(e.target.value)}
+                  placeholder="Event Title..."
+                  className="w-full bg-neutral-800/60 text-white placeholder-gray-500 rounded-lg py-2 pl-3 pr-10 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all text-sm"
+                  disabled={isAddingEvent}
+                />
+                <button
+                  type="button"
+                  onClick={() => startVoiceTyping(setNewEventSummary)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-purple-400 transition-colors"
+                  title="Dictar por voz"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+              </div>
               <div className="flex gap-2">
                 <input
                   type="date"
