@@ -8,9 +8,9 @@ export default function Mascot() {
       {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-purple-500/20 blur-2xl rounded-full" />
       
-      <div className="relative w-24 h-24 lg:w-32 lg:h-32 flex-shrink-0">
+      <div className="relative w-32 h-32 lg:w-40 lg:h-40 flex-shrink-0">
         <svg
-          viewBox="0 0 100 100"
+          viewBox="0 0 200 200"
           className="w-full h-full drop-shadow-2xl"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -22,50 +22,114 @@ export default function Mascot() {
               }
               @keyframes float {
                 0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-4px); }
+                50% { transform: translateY(-6px); }
               }
               @keyframes metronome-tail {
-                0% { transform: rotate(-10deg); }
-                50% { transform: rotate(20deg); }
-                100% { transform: rotate(-10deg); }
+                0% { transform: rotate(-15deg); }
+                50% { transform: rotate(15deg); }
+                100% { transform: rotate(-15deg); }
               }
-              @keyframes ear-twitch {
+              @keyframes ear-twitch-l {
                 0%, 90%, 100% { transform: rotate(0deg); }
-                95% { transform: rotate(-5deg); }
+                95% { transform: rotate(-12deg); }
               }
-              .eye { animation: blink 4s infinite; transform-origin: center; }
-              .body { animation: float 3s ease-in-out infinite; }
+              @keyframes ear-twitch-r {
+                0%, 90%, 100% { transform: rotate(0deg); }
+                95% { transform: rotate(12deg); }
+              }
+              .eye-group { animation: blink 4s infinite; transform-origin: 100px 85px; }
+              .cat-body { animation: float 3s ease-in-out infinite; transform-origin: center; }
               /* The tail animates exactly every 1s to match the timer tick */
-              .tail { animation: metronome-tail 1s ease-in-out infinite; transform-origin: 75px 65px; }
-              .ear { animation: ear-twitch 5s infinite; transform-origin: 35px 45px; }
+              .tail { animation: metronome-tail 1s ease-in-out infinite; transform-origin: 130px 140px; }
+              .ear-l { animation: ear-twitch-l 5s infinite; transform-origin: 60px 65px; }
+              .ear-r { animation: ear-twitch-r 5s infinite; transform-origin: 140px 65px; }
             `}
           </style>
-          
-          <g className="body">
+
+          <g className="cat-body">
             {/* Tail */}
-            <path className="tail" d="M 75 65 Q 95 65 90 40" stroke="#8b5cf6" strokeWidth="8" fill="none" strokeLinecap="round" />
+            <path 
+              className="tail" 
+              d="M 130 140 C 170 150, 190 100, 170 70 C 160 55, 180 40, 185 30" 
+              stroke="#8b5cf6" 
+              strokeWidth="14" 
+              fill="none" 
+              strokeLinecap="round" 
+            />
             
+            {/* Left Back Paw */}
+            <ellipse cx="65" cy="165" rx="18" ry="12" fill="#8b5cf6" />
+            <ellipse cx="62" cy="166" rx="6" ry="5" fill="#1f2937" />
+            {/* Left Toe Beans */}
+            <circle cx="56" cy="160" r="2.5" fill="#1f2937" />
+            <circle cx="63" cy="158" r="2.5" fill="#1f2937" />
+            <circle cx="70" cy="160" r="2.5" fill="#1f2937" />
+
+            {/* Right Back Paw */}
+            <ellipse cx="135" cy="165" rx="18" ry="12" fill="#8b5cf6" />
+            <ellipse cx="138" cy="166" rx="6" ry="5" fill="#1f2937" />
+            {/* Right Toe Beans */}
+            <circle cx="130" cy="160" r="2.5" fill="#1f2937" />
+            <circle cx="137" cy="158" r="2.5" fill="#1f2937" />
+            <circle cx="144" cy="160" r="2.5" fill="#1f2937" />
+
             {/* Body */}
-            <rect x="25" y="45" width="50" height="35" rx="17.5" fill="#a78bfa" />
+            <ellipse cx="100" cy="135" rx="48" ry="42" fill="#a78bfa" />
             
-            {/* Left Ear */}
-            <path className="ear" d="M 28 48 Q 22 30 25 18 Q 35 25 45 45 Z" fill="#8b5cf6" />
-            <path className="ear" d="M 32 44 Q 28 32 30 25 Q 35 32 38 42 Z" fill="#c4b5fd" opacity="0.6" />
+            {/* Belly */}
+            <ellipse cx="100" cy="145" rx="28" ry="22" fill="#ede9fe" />
+
+            {/* Front Paws */}
+            <ellipse cx="80" cy="170" rx="12" ry="18" fill="#a78bfa" stroke="#8b5cf6" strokeWidth="2" />
+            <ellipse cx="120" cy="170" rx="12" ry="18" fill="#a78bfa" stroke="#8b5cf6" strokeWidth="2" />
+
+            {/* Head Group */}
+            <g className="head">
+              {/* Ears */}
+              <g className="ear-l">
+                <path d="M 55 65 Q 25 15 80 40 Z" fill="#8b5cf6" />
+                <path d="M 60 60 Q 35 25 75 42 Z" fill="#c4b5fd" />
+              </g>
+              <g className="ear-r">
+                <path d="M 145 65 Q 175 15 120 40 Z" fill="#8b5cf6" />
+                <path d="M 140 60 Q 165 25 125 42 Z" fill="#c4b5fd" />
+              </g>
+              
+              {/* Face base */}
+              <ellipse cx="100" cy="80" rx="55" ry="42" fill="#a78bfa" />
+              
+              {/* Face details */}
+              <g className="eye-group">
+                {/* Left Eye */}
+                <ellipse cx="75" cy="85" rx="8" ry="12" fill="#1f2937" />
+                <circle cx="72" cy="79" r="3.5" fill="#ffffff" />
+                <circle cx="78" cy="90" r="2" fill="#ffffff" />
+                
+                {/* Right Eye */}
+                <ellipse cx="125" cy="85" rx="8" ry="12" fill="#1f2937" />
+                <circle cx="122" cy="79" r="3.5" fill="#ffffff" />
+                <circle cx="128" cy="90" r="2" fill="#ffffff" />
+              </g>
+              
+              {/* Nose */}
+              <circle cx="100" cy="96" r="2.5" fill="#f472b6" />
+              
+              {/* Mouth */}
+              <path d="M 92 101 Q 96 106 100 101 Q 104 106 108 101" stroke="#1f2937" strokeWidth="3" fill="none" strokeLinecap="round" />
+              
+              {/* Blush */}
+              <ellipse cx="60" cy="100" rx="10" ry="5" fill="#f472b6" opacity="0.4" />
+              <ellipse cx="140" cy="100" rx="10" ry="5" fill="#f472b6" opacity="0.4" />
+            </g>
+
+            {/* Collar */}
+            <path d="M 65 115 Q 100 138 135 115" stroke="#ef4444" strokeWidth="8" fill="none" strokeLinecap="round" />
             
-            {/* Right Ear */}
-            <path d="M 72 48 Q 78 30 75 18 Q 65 25 55 45 Z" fill="#8b5cf6" />
-            <path d="M 68 44 Q 72 32 70 25 Q 65 32 62 42 Z" fill="#c4b5fd" opacity="0.6" />
-            
-            {/* Eyes */}
-            <circle cx="38" cy="60" r="4.5" fill="#1f2937" className="eye" />
-            <circle cx="62" cy="60" r="4.5" fill="#1f2937" className="eye" />
-            
-            {/* Nose / Mouth */}
-            <path d="M 48 65 Q 50 68 52 65" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-            
-            {/* Blush */}
-            <ellipse cx="30" cy="65" rx="4" ry="2" fill="#f472b6" opacity="0.5" />
-            <ellipse cx="70" cy="65" rx="4" ry="2" fill="#f472b6" opacity="0.5" />
+            {/* Bell */}
+            <circle cx="100" cy="130" r="9" fill="#fbbf24" />
+            <line x1="100" y1="135" x2="100" y2="139" stroke="#b45309" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="100" cy="133" r="2" fill="#b45309" />
+            <path d="M 93 128 Q 100 125 107 128" stroke="#b45309" strokeWidth="1.5" fill="none" strokeLinecap="round" />
           </g>
         </svg>
       </div>
