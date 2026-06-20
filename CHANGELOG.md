@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0] - 2026-06-19
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Diseño Mejorado de Chibi Pomodoro**: Se ha actualizado la mascota animada a un diseño de cuerpo completo estilo anime. Incluye patitas, pancita, collar con cascabel y almohadillas negras (toe beans) en las patas traseras.
+- **Animaciones Optimizadas**: Parpadeo y movimiento de orejas sincronizados para el nuevo diseño.
+
+---
+
 ## [0.7.0] - 2026-06-11
 
 ### <!--icon:rocket--> Nuevas Características
