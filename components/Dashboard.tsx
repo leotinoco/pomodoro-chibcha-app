@@ -241,7 +241,7 @@ export default function Dashboard() {
             href="/changelog"
             className="hover:text-blue-400 transition-colors underline decoration-zinc-700 hover:decoration-blue-400"
           >
-            Ver Novedades (v0.8.0)
+            Ver Novedades (v0.9.0)
           </Link>
           <span className="text-zinc-700 hidden sm:inline">•</span>
           <Link

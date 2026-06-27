@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.0] - 2026-06-27
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Tareas Terminadas**: Se agregó un acordeón al final de la lista de tareas para visualizar las tareas completadas en los últimos 7 días con su respectiva fecha de finalización y una opción para restaurarlas.
 ## [0.8.0] - 2026-06-19
 
 ### <!--icon:rocket--> Nuevas Características
