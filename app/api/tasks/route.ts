@@ -31,6 +31,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const getCompleted = searchParams.get("completed") === "true";
+
   const auth = getGoogleClient(token.accessToken as string);
   const service = google.tasks({ version: "v1", auth });
 
@@ -42,6 +45,32 @@ export async function GET(req: NextRequest) {
 
     if (!firstListId) {
       return NextResponse.json({ tasks: [] });
+    }
+
+    if (getCompleted) {
+      // Fetch completed tasks from the last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const tasksResponse = await service.tasks.list({
+        tasklist: firstListId,
+        showCompleted: true,
+        showHidden: true,
+        updatedMin: sevenDaysAgo.toISOString(),
+      });
+
+      const completedTasks = (tasksResponse.data.items || [])
+        .filter((task) => task.status === "completed")
+        .sort((a, b) => {
+          const dateA = a.completed ? new Date(a.completed).getTime() : 0;
+          const dateB = b.completed ? new Date(b.completed).getTime() : 0;
+          return dateB - dateA;
+        });
+
+      return NextResponse.json({
+        tasks: completedTasks,
+        listId: firstListId,
+      });
     }
 
     const tasksResponse = await service.tasks.list({

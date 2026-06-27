@@ -7,7 +7,7 @@ import {
   useLayoutEffect,
   useCallback,
 } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import axios from "axios";
 import { format, isToday, isTomorrow, isPast, parseISO } from "date-fns";
 import {
@@ -23,6 +23,9 @@ import {
   Check,
   X,
   Mic,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
 } from "lucide-react";
 import {
   DndContext,
@@ -46,6 +49,7 @@ interface Task {
   due?: string;
   status: "needsAction" | "completed";
   parent?: string;
+  completed?: string;
 }
 
 interface CalendarEvent {
@@ -228,6 +232,8 @@ function SortableTaskItem({
 export default function TaskList() {
   const { data: session } = useSession();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [listId, setListId] = useState<string | null>(null);
   const [newTask, setNewTask] = useState("");
@@ -333,7 +339,7 @@ export default function TaskList() {
 
     // Create new array with moved item
     const newTasks = [...tasks];
-    const [movedItem] = newTasks.splice(oldIndex, 1);
+    newTasks.splice(oldIndex, 1);
 
     const activeTask = tasks.find((t) => t.id === activeId);
     const overTask = tasks.find((t) => t.id === overId);
@@ -504,6 +510,9 @@ export default function TaskList() {
       setTasks(serverTasks);
       setListId(res.data.listId);
 
+      const compRes = await axios.get("/api/tasks?completed=true");
+      setCompletedTasks(compRes.data.tasks || []);
+
       const calendarRes = await axios.get("/api/calendar");
       setEvents(calendarRes.data.events || []);
     } catch (error) {
@@ -544,6 +553,31 @@ export default function TaskList() {
         return next;
       });
       fetchTasks();
+    }
+  };
+
+  const uncompleteTask = async (taskId: string) => {
+    if (!session) {
+       const updatedTasks = tasks.map(t => t.id === taskId ? { ...t, status: 'needsAction' as const } : t);
+       saveLocalTasks(updatedTasks);
+       return;
+    }
+
+    setLocallyCompleted((prev) => {
+      const next = new Set(prev);
+      next.delete(taskId);
+      return next;
+    });
+
+    try {
+      await axios.patch("/api/tasks", {
+        tasklist: listId,
+        task: taskId,
+        status: "needsAction",
+      });
+      fetchTasks();
+    } catch (error) {
+      console.error("Failed to uncomplete task", error);
     }
   };
 
@@ -927,6 +961,47 @@ export default function TaskList() {
             </SortableContext>
           </DndContext>
         </div>
+
+        {/* Completed Tasks Accordion */}
+        {session && completedTasks.length > 0 && (
+          <div className="border border-neutral-800 rounded-xl overflow-hidden mt-4">
+            <button
+              onClick={() => setShowCompleted(!showCompleted)}
+              className="w-full flex items-center justify-between p-4 bg-neutral-800/40 hover:bg-neutral-800/80 transition-colors text-white font-medium"
+            >
+              <span>Tareas terminadas ({completedTasks.length})</span>
+              {showCompleted ? (
+                <ChevronUp className="w-5 h-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              )}
+            </button>
+            
+            {showCompleted && (
+              <div className="p-4 bg-neutral-900/50 space-y-3 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700">
+                {completedTasks.map((task) => (
+                  <div key={task.id} className="flex items-start justify-between gap-3 p-3 bg-neutral-800/30 rounded-xl border border-transparent hover:border-neutral-700 transition-all">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-400 line-through text-sm break-words">{task.title}</p>
+                      {task.completed && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Completada: {format(parseISO(task.completed), "dd MMM yyyy, h:mm a")}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => uncompleteTask(task.id)}
+                      className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-neutral-700/50 rounded-lg transition-colors flex-shrink-0"
+                      title="Volver a habilitar"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {session && (
           <>
