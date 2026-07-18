@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.10.0] - 2026-07-17
+
+### <!--icon:shield--> Seguridad
+
+- **Permisos de Google reducidos al mínimo**: La aplicación ahora solicita acceso únicamente a los eventos de tu calendario (`calendar.events`) en lugar del control total de Google Calendar. Todo sigue funcionando igual, pero la app ya no puede tocar la configuración ni la compartición de tus calendarios.
+- **Credenciales fuera de las URLs**: El refresco de sesión con Google ahora envía las credenciales en el cuerpo de la petición, donde no pueden quedar registradas en logs intermedios.
+- **Política de seguridad de contenido más estricta**: Eliminada la directiva `unsafe-eval` del CSP en producción y actualizadas las cabeceras de protección del navegador.
+- **Política de privacidad reforzada**: Nueva declaración de Uso Limitado (Limited Use) conforme a la Política de Datos de Usuario de las APIs de Google, con secciones de cookies/analítica, revocación de acceso y contacto.
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Términos de Servicio multilingües**: La página de términos ahora está disponible en Español, English, Français, 日本語 y Português con un selector de idioma integrado.
+
+### <!--icon:bug--> Correcciones
+
+- **Sesión estable con Google**: Corregido un error que hacía que el token de acceso se renovara contra Google en cada petición; ahora se renueva solo cuando expira.
+- **Confeti al terminar cada fase**: El festejo al completar un ciclo Pomodoro ahora se dispara de forma fiable al finalizar la fase.
+- **Textos legales exactos**: Fechas de actualización fijas en las páginas legales y corrección de los géneros musicales mencionados (Lofi, Clásica, Rock).
+
+### <!--icon:lightning--> Rendimiento
+
+- **Carga del panel más rápida**: Las tareas, tareas completadas y eventos del calendario ahora se solicitan en paralelo, reduciendo el tiempo de carga hasta 3 veces.
+- **Menos trabajo por render**: Las listas de reproducción del reproductor ambiental ya no se reconstruyen en cada render.
+
+### <!--icon:gear--> Mejoras Internas
+
+- **Código sin advertencias**: Resueltos todos los errores y avisos de ESLint (reglas de React Hooks) refactorizando los efectos del temporizador, el reproductor y la lista de tareas.
+
+---
+
 ## [0.9.0] - 2026-06-27
 
 ### <!--icon:rocket--> Nuevas Características
