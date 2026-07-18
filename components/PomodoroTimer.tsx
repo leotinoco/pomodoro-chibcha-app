@@ -14,7 +14,6 @@ import {
   VolumeX,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { useEffect } from "react";
 
 export default function PomodoroTimer({
   onPlaySfx,
@@ -40,17 +39,14 @@ export default function PomodoroTimer({
       if (phase === "shortBreak" || phase === "meal") onPlaySfx("break");
       if (phase === "longBreak") onPlaySfx("longBreak");
     },
-  });
-
-  useEffect(() => {
-    if (timeLeft === 0) {
+    onPhaseEnd: () => {
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
       });
-    }
-  }, [timeLeft]);
+    },
+  });
 
   return (
     <div className="flex flex-col items-center justify-center p-8 pb-12 bg-neutral-900/50 backdrop-blur-md rounded-3xl border border-neutral-800 shadow-2xl relative overflow-hidden">

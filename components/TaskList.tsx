@@ -296,6 +296,26 @@ export default function TaskList() {
     recognition.start();
   };
 
+  const fetchTasks = useCallback(async () => {
+    if (!session) return;
+    setLoading(true);
+    try {
+      const [res, compRes, calendarRes] = await Promise.all([
+        axios.get("/api/tasks"),
+        axios.get("/api/tasks?completed=true"),
+        axios.get("/api/calendar"),
+      ]);
+      setTasks(res.data.tasks || []);
+      setListId(res.data.listId);
+      setCompletedTasks(compRes.data.tasks || []);
+      setEvents(calendarRes.data.events || []);
+    } catch (error) {
+      console.error("Failed to fetch tasks", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [session]);
+
   // Load tasks on mount or session change
   useEffect(() => {
     if (session) {
@@ -314,7 +334,7 @@ export default function TaskList() {
         setTasks([]);
       }
     }
-  }, [session]);
+  }, [session, fetchTasks]);
 
   const saveLocalTasks = (newTasks: Task[]) => {
     setTasks(newTasks);
@@ -498,27 +518,6 @@ export default function TaskList() {
       console.error("Failed to add event", error);
     } finally {
       setIsAddingEvent(false);
-    }
-  };
-
-  const fetchTasks = async () => {
-    if (!session) return;
-    setLoading(true);
-    try {
-      const res = await axios.get("/api/tasks");
-      const serverTasks = res.data.tasks || [];
-      setTasks(serverTasks);
-      setListId(res.data.listId);
-
-      const compRes = await axios.get("/api/tasks?completed=true");
-      setCompletedTasks(compRes.data.tasks || []);
-
-      const calendarRes = await axios.get("/api/calendar");
-      setEvents(calendarRes.data.events || []);
-    } catch (error) {
-      console.error("Failed to fetch tasks", error);
-    } finally {
-      setLoading(false);
     }
   };
 

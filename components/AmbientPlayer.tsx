@@ -11,6 +11,30 @@ import {
   SkipForward,
 } from "lucide-react";
 
+const PLAYLISTS = {
+  Lofi: [
+    "/sounds/lofi/lofi-1.mp3",
+    "/sounds/lofi/lofi-2.mp3",
+    "/sounds/lofi/lofi-3.mp3",
+    "/sounds/lofi/lofi-4.mp3",
+    "/sounds/lofi/lofi-5.mp3",
+  ],
+  Clásica: [
+    "/sounds/classic/clasic-1.mp3",
+    "/sounds/classic/clasic-2.mp3",
+    "/sounds/classic/clasic-3.mp3",
+    "/sounds/classic/clasic-4.mp3",
+    "/sounds/classic/clasic-5.mp3",
+  ],
+  Rock: [
+    "/sounds/rock/rock-1.mp3",
+    "/sounds/rock/rock-2.mp3",
+    "/sounds/rock/rock-3.mp3",
+    "/sounds/rock/rock-4.mp3",
+    "/sounds/rock/rock-5.mp3",
+  ],
+};
+
 export default function AmbientPlayer({
   shouldPause,
   isDucking = false,
@@ -26,30 +50,6 @@ export default function AmbientPlayer({
   const [isLooping, setIsLooping] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const PLAYLISTS = {
-    Lofi: [
-      "/sounds/lofi/lofi-1.mp3",
-      "/sounds/lofi/lofi-2.mp3",
-      "/sounds/lofi/lofi-3.mp3",
-      "/sounds/lofi/lofi-4.mp3",
-      "/sounds/lofi/lofi-5.mp3",
-    ],
-    Clásica: [
-      "/sounds/classic/clasic-1.mp3",
-      "/sounds/classic/clasic-2.mp3",
-      "/sounds/classic/clasic-3.mp3",
-      "/sounds/classic/clasic-4.mp3",
-      "/sounds/classic/clasic-5.mp3",
-    ],
-    Rock: [
-      "/sounds/rock/rock-1.mp3",
-      "/sounds/rock/rock-2.mp3",
-      "/sounds/rock/rock-3.mp3",
-      "/sounds/rock/rock-4.mp3",
-      "/sounds/rock/rock-5.mp3",
-    ],
-  };
-
   useEffect(() => {
     if (audioRef.current) {
       if (isDucking) {
@@ -62,11 +62,11 @@ export default function AmbientPlayer({
     }
   }, [volume, isDucking]);
 
-  // Handle external pause requests (e.g. from Dashboard)
+  // Handle external pause requests (e.g. from Dashboard). The audio
+  // element's onPause handler keeps isPlaying in sync.
   useEffect(() => {
-    if (shouldPause && isPlaying && audioRef.current) {
+    if (shouldPause && audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause();
-      setIsPlaying(false);
     }
   }, [shouldPause]);
 
@@ -129,12 +129,18 @@ export default function AmbientPlayer({
     }
   };
 
-  // Auto-play when track index changes if it was already playing or we just switched genre to play
+  // Auto-play when track index changes if it was already playing or we just
+  // switched genre to play. The element's onPlay handler syncs isPlaying on
+  // success; only failures need an explicit state update.
   useEffect(() => {
-    if (isPlaying && audioRef.current) {
-      safePlay();
-    }
-  }, [currentTrackIndex, currentGenre]);
+    if (!isPlaying || !audioRef.current) return;
+    audioRef.current.play().catch((error) => {
+      if ((error as Error).name !== "AbortError") {
+        console.error("Playback failed", error);
+      }
+      setIsPlaying(false);
+    });
+  }, [currentTrackIndex, currentGenre, isPlaying]);
 
   return (
     <div className="bg-neutral-900/50 backdrop-blur-md rounded-2xl p-6 border border-neutral-800 shadow-xl">

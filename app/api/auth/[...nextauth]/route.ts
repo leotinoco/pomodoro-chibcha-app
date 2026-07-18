@@ -5,20 +5,19 @@ import { JWT } from "next-auth/jwt";
 // Helper function to refresh the access token
 async function refreshAccessToken(token: JWT) {
   try {
-    const url =
-      "https://oauth2.googleapis.com/token?" +
-      new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        grant_type: "refresh_token",
-        refresh_token: token.refreshToken as string,
-      });
-
-    const response = await fetch(url, {
+    // Credentials go in the POST body, never in the URL, so the client
+    // secret cannot end up in proxy or server access logs.
+    const response = await fetch("https://oauth2.googleapis.com/token", {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       method: "POST",
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken as string,
+      }),
     });
 
     const refreshedTokens = await response.json();
@@ -58,8 +57,11 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
+          // Narrowest scopes that cover the app's features: calendar.events
+          // (list/create/edit events) instead of full calendar access, which
+          // would also grant control over calendar settings and sharing.
           scope:
-            "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks",
+            "openid email profile https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks",
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
@@ -73,8 +75,11 @@ export const authOptions: NextAuthOptions = {
       if (account && user) {
         return {
           accessToken: account.access_token,
-          accessTokenExpires:
-            Date.now() + (account.expires_in as number) * 1000,
+          // NextAuth v4 exposes `expires_at` (absolute, in seconds); the raw
+          // `expires_in` from Google is not present on the account object.
+          accessTokenExpires: account.expires_at
+            ? account.expires_at * 1000
+            : Date.now() + 3600 * 1000,
           refreshToken: account.refresh_token,
           user,
           ...token, // Keep default properties (name, email, picture, sub)

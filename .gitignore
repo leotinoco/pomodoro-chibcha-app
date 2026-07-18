@@ -60,3 +60,4 @@ vendor/
 
 # agents and security
 /.agents
+/.claude

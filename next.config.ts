@@ -1,5 +1,14 @@
 import type { NextConfig } from "next";
 
+// Next.js dev server needs eval for HMR; production must not allow it.
+const scriptSrc = [
+  "script-src 'self' 'unsafe-inline'",
+  process.env.NODE_ENV === "development" ? "'unsafe-eval'" : "",
+  "https://www.googletagmanager.com https://www.google-analytics.com",
+]
+  .filter(Boolean)
+  .join(" ");
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -24,7 +33,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "X-XSS-Protection",
-            value: "1; mode=block",
+            value: "0",
           },
           {
             key: "Referrer-Policy",
@@ -38,7 +47,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
+              scriptSrc,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://lh3.googleusercontent.com https://www.google-analytics.com",
               "font-src 'self'",

@@ -66,11 +66,14 @@ export default function Dashboard() {
   const { play: playSfx } = useSfx();
   const [sfxVolume, setSfxVolume] = useState(0.5);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
+  /* eslint-disable react-hooks/set-state-in-effect --
+   * Mount-time sync with browser-only state (hydration flag, localStorage).
+   * localStorage is unavailable during SSR, so reading it in a lazy state
+   * initializer would cause a hydration mismatch; an effect is the safe way.
+   */
   useEffect(() => {
     setMounted(true);
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     const saved = localStorage.getItem("sfxVolume");
@@ -78,6 +81,7 @@ export default function Dashboard() {
       setSfxVolume(parseFloat(saved));
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSfxVolumeChange = (newVolume: number) => {
     setSfxVolume(newVolume);
@@ -241,7 +245,7 @@ export default function Dashboard() {
             href="/changelog"
             className="hover:text-blue-400 transition-colors underline decoration-zinc-700 hover:decoration-blue-400"
           >
-            Ver Novedades (v0.9.0)
+            Ver Novedades (v0.10.0)
           </Link>
           <span className="text-zinc-700 hidden sm:inline">•</span>
           <Link

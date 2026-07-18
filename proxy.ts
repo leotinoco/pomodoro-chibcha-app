@@ -16,7 +16,11 @@ function cleanup() {
 }
 
 export function proxy(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  // x-forwarded-for may be a list ("client, proxy1, proxy2"); the first
+  // entry is the original client.
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "127.0.0.1";
   const now = Date.now();
 
   cleanup();

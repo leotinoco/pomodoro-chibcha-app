@@ -11,10 +11,12 @@ const MODES: Record<Mode, number> = {
 
 type UsePomodoroOptions = {
   onPhaseStart?: (mode: Mode) => void;
+  onPhaseEnd?: (mode: Mode) => void;
 };
 
 export const usePomodoro = (options: UsePomodoroOptions = {}) => {
   const onPhaseStart = options.onPhaseStart;
+  const onPhaseEnd = options.onPhaseEnd;
   const [mode, setMode] = useState<Mode>("focus");
   const [focusDuration, setFocusDuration] = useState(MODES.focus);
   const [timeLeft, setTimeLeft] = useState(MODES.focus);
@@ -67,35 +69,42 @@ export const usePomodoro = (options: UsePomodoroOptions = {}) => {
     notifiedPhaseRef.current = null;
   }, [focusDuration, mode]);
 
-  useEffect(() => {
-    if (isActive && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      if (mode === "focus") {
-        setSessionsCompleted((prev) => {
-          const newCompleted = prev + 1;
-          const nextMode = newCompleted % 4 === 0 ? "longBreak" : "shortBreak";
-          startPhase(nextMode, MODES[nextMode], true);
-          return newCompleted;
-        });
-      } else {
-        startPhase("focus", focusDuration, true);
-      }
+  const completePhase = useCallback(() => {
+    onPhaseEnd?.(mode);
 
-      if (Notification.permission === "granted") {
-        new Notification("Time's up!", {
-          body: `${mode === "focus" ? "Focus session" : "Break"} completed. Starting next phase.`,
-          icon: "/icon.png",
-        });
-      }
+    if (mode === "focus") {
+      const newCompleted = sessionsCompleted + 1;
+      setSessionsCompleted(newCompleted);
+      const nextMode = newCompleted % 4 === 0 ? "longBreak" : "shortBreak";
+      startPhase(nextMode, MODES[nextMode], true);
+    } else {
+      startPhase("focus", focusDuration, true);
     }
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Time's up!", {
+        body: `${mode === "focus" ? "Focus session" : "Break"} completed. Starting next phase.`,
+        icon: "/icon.png",
+      });
+    }
+  }, [focusDuration, mode, onPhaseEnd, sessionsCompleted, startPhase]);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    timerRef.current = setInterval(() => {
+      if (timeLeft <= 1) {
+        setTimeLeft(0);
+        completePhase();
+      } else {
+        setTimeLeft(timeLeft - 1);
+      }
+    }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [focusDuration, isActive, mode, startPhase, timeLeft]);
+  }, [completePhase, isActive, timeLeft]);
 
   useEffect(() => {
     if (!onPhaseStart) return;
