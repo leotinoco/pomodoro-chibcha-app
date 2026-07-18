@@ -110,6 +110,15 @@ export default async function ChangelogPage() {
                   </h3>
                 );
               },
+              ul: ({ ...props }) => (
+                <ul className="list-disc pl-5 space-y-3 mb-6" {...props} />
+              ),
+              li: ({ ...props }) => (
+                <li className="text-zinc-300 leading-relaxed" {...props} />
+              ),
+              p: ({ ...props }) => (
+                <p className="mb-4 text-zinc-300 leading-relaxed" {...props} />
+              ),
             }}
           >
             {content}
