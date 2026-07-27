@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getGoogleClient } from "@/lib/google";
-import { google } from "googleapis";
+import { google, tasks_v1 } from "googleapis";
 import { z } from "zod";
+
+// Google Tasks devuelve 20 elementos por página por defecto (máx. 100).
+// Sin paginar, las cuentas con muchas tareas sólo mostraban las primeras 20.
+const PAGE_SIZE = 100;
+const MAX_PAGES = 20;
 
 const taskPatchSchema = z.object({
   tasklist: z.string().min(1),
@@ -25,6 +30,56 @@ function sanitizeError() {
   return { error: "Internal server error" };
 }
 
+type TaskWithList = tasks_v1.Schema$Task & {
+  listId: string;
+  listTitle?: string | null;
+};
+
+async function listAllTaskLists(service: tasks_v1.Tasks) {
+  const items: tasks_v1.Schema$TaskList[] = [];
+  let pageToken: string | undefined;
+  let pages = 0;
+
+  do {
+    const response = await service.tasklists.list({
+      maxResults: PAGE_SIZE,
+      pageToken,
+    });
+    items.push(...(response.data.items || []));
+    pageToken = response.data.nextPageToken ?? undefined;
+    pages += 1;
+  } while (pageToken && pages < MAX_PAGES);
+
+  return items;
+}
+
+async function listAllTasks(
+  service: tasks_v1.Tasks,
+  tasklist: string,
+  params: Pick<
+    tasks_v1.Params$Resource$Tasks$List,
+    "showCompleted" | "showHidden" | "updatedMin"
+  >,
+) {
+  const items: tasks_v1.Schema$Task[] = [];
+  let pageToken: string | undefined;
+  let pages = 0;
+
+  do {
+    const response = await service.tasks.list({
+      ...params,
+      tasklist,
+      maxResults: PAGE_SIZE,
+      pageToken,
+    });
+    items.push(...(response.data.items || []));
+    pageToken = response.data.nextPageToken ?? undefined;
+    pages += 1;
+  } while (pageToken && pages < MAX_PAGES);
+
+  return items;
+}
+
 export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token?.accessToken) {
@@ -38,28 +93,53 @@ export async function GET(req: NextRequest) {
   const service = google.tasks({ version: "v1", auth });
 
   try {
-    const response = await service.tasklists.list();
-    const taskLists = response.data.items;
+    const taskLists = (await listAllTaskLists(service)).filter(
+      (list): list is tasks_v1.Schema$TaskList & { id: string } => !!list.id,
+    );
 
-    const firstListId = taskLists?.[0]?.id;
+    const defaultListId = taskLists[0]?.id;
 
-    if (!firstListId) {
-      return NextResponse.json({ tasks: [] });
+    if (!defaultListId) {
+      return NextResponse.json({ tasks: [], lists: [] });
     }
+
+    // Cada tarea viaja con el id de su lista para que las mutaciones
+    // (completar, editar, mover) apunten siempre a la lista correcta.
+    const withListId = (
+      items: tasks_v1.Schema$Task[],
+      list: tasks_v1.Schema$TaskList & { id: string },
+    ): TaskWithList[] =>
+      items.map((task) => ({
+        ...task,
+        listId: list.id,
+        listTitle: list.title,
+      }));
+
+    const lists = taskLists.map((list) => ({
+      id: list.id,
+      title: list.title,
+    }));
 
     if (getCompleted) {
       // Fetch completed tasks from the last 7 days
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const tasksResponse = await service.tasks.list({
-        tasklist: firstListId,
-        showCompleted: true,
-        showHidden: true,
-        updatedMin: sevenDaysAgo.toISOString(),
-      });
 
-      const completedTasks = (tasksResponse.data.items || [])
+      const perList = await Promise.all(
+        taskLists.map(async (list) =>
+          withListId(
+            await listAllTasks(service, list.id, {
+              showCompleted: true,
+              showHidden: true,
+              updatedMin: sevenDaysAgo.toISOString(),
+            }),
+            list,
+          ),
+        ),
+      );
+
+      const completedTasks = perList
+        .flat()
         .filter((task) => task.status === "completed")
         .sort((a, b) => {
           const dateA = a.completed ? new Date(a.completed).getTime() : 0;
@@ -69,19 +149,27 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json({
         tasks: completedTasks,
-        listId: firstListId,
+        listId: defaultListId,
+        lists,
       });
     }
 
-    const tasksResponse = await service.tasks.list({
-      tasklist: firstListId,
-      showCompleted: false,
-      showHidden: false,
-    });
+    const perList = await Promise.all(
+      taskLists.map(async (list) =>
+        withListId(
+          await listAllTasks(service, list.id, {
+            showCompleted: false,
+            showHidden: false,
+          }),
+          list,
+        ),
+      ),
+    );
 
     return NextResponse.json({
-      tasks: tasksResponse.data.items || [],
-      listId: firstListId,
+      tasks: perList.flat(),
+      listId: defaultListId,
+      lists,
     });
   } catch (error) {
     console.error("Error fetching tasks:", error);

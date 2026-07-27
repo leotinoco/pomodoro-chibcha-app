@@ -50,6 +50,9 @@ interface Task {
   status: "needsAction" | "completed";
   parent?: string;
   completed?: string;
+  /** Lista de Google Tasks a la que pertenece (ausente en tareas locales). */
+  listId?: string;
+  listTitle?: string;
 }
 
 interface CalendarEvent {
@@ -74,10 +77,12 @@ function SortableTaskItem({
   onEditTitleChange,
   onEditDueChange,
   isSaving,
+  showListName,
 }: {
   task: Task;
   isCompleted: boolean;
   isSubtask: boolean;
+  showListName: boolean;
   onComplete: (id: string) => void;
   getTrafficLightColor: (date?: string) => string;
   isEditing: boolean;
@@ -169,11 +174,18 @@ function SortableTaskItem({
           >
             {task.title}
           </p>
-          {task.due && (
-            <p className="text-xs text-gray-500 mt-0.5">
-              Due: {format(parseISO(task.due), "MMM d")}
-            </p>
-          )}
+          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+            {task.due && (
+              <span className="text-xs text-gray-500">
+                Due: {format(parseISO(task.due), "MMM d")}
+              </span>
+            )}
+            {showListName && task.listTitle && (
+              <span className="text-[10px] uppercase tracking-wide text-gray-400 bg-neutral-700/50 rounded-full px-2 py-0.5">
+                {task.listTitle}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -236,6 +248,9 @@ export default function TaskList() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [listId, setListId] = useState<string | null>(null);
+  const [taskLists, setTaskLists] = useState<{ id: string; title?: string }[]>(
+    [],
+  );
   const [newTask, setNewTask] = useState("");
   const [newTaskDue, setNewTaskDue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -296,6 +311,16 @@ export default function TaskList() {
     recognition.start();
   };
 
+  // La lista a la que pertenece la tarea; cae a la lista por defecto para
+  // tareas creadas antes de que el API devolviera listId.
+  const listIdForTask = useCallback(
+    (taskId: string) =>
+      tasks.find((t) => t.id === taskId)?.listId ??
+      completedTasks.find((t) => t.id === taskId)?.listId ??
+      listId,
+    [tasks, completedTasks, listId],
+  );
+
   const fetchTasks = useCallback(async () => {
     if (!session) return;
     setLoading(true);
@@ -307,6 +332,7 @@ export default function TaskList() {
       ]);
       setTasks(res.data.tasks || []);
       setListId(res.data.listId);
+      setTaskLists(res.data.lists || []);
       setCompletedTasks(compRes.data.tasks || []);
       setEvents(calendarRes.data.events || []);
     } catch (error) {
@@ -366,6 +392,9 @@ export default function TaskList() {
 
     if (!activeTask || !overTask) return;
 
+    // Google Tasks no permite mover una tarea entre listas distintas.
+    if (activeTask.listId !== overTask.listId) return;
+
     let newParentId: string | undefined;
     if (!overTask.parent) {
       newParentId = overTask.id;
@@ -391,7 +420,7 @@ export default function TaskList() {
 
     try {
       await axios.patch("/api/tasks", {
-        tasklist: listId,
+        tasklist: activeTask.listId ?? listId,
         task: activeId,
         parent: newParentId,
       });
@@ -540,7 +569,7 @@ export default function TaskList() {
 
     try {
       await axios.patch("/api/tasks", {
-        tasklist: listId,
+        tasklist: listIdForTask(taskId),
         task: taskId,
         status: "completed",
       });
@@ -570,7 +599,7 @@ export default function TaskList() {
 
     try {
       await axios.patch("/api/tasks", {
-        tasklist: listId,
+        tasklist: listIdForTask(taskId),
         task: taskId,
         status: "needsAction",
       });
@@ -619,7 +648,7 @@ export default function TaskList() {
 
     try {
       await axios.patch("/api/tasks", {
-        tasklist: listId,
+        tasklist: listIdForTask(editingTaskId),
         task: editingTaskId,
         title: editTitle.trim(),
         due: dueISO,
@@ -745,6 +774,13 @@ export default function TaskList() {
       if (childrenMap.has(root.id)) {
         result.push(...childrenMap.get(root.id)!);
       }
+    });
+
+    // Subtareas cuyo padre no está en la lista (p. ej. el padre ya se completó)
+    // quedaban fuera del render: se añaden al final en vez de desaparecer.
+    const rendered = new Set(result.map((t) => t.id));
+    tasks.forEach((t) => {
+      if (!rendered.has(t.id)) result.push(t);
     });
 
     return result;
@@ -954,6 +990,7 @@ export default function TaskList() {
                     onEditTitleChange={setEditTitle}
                     onEditDueChange={setEditDue}
                     isSaving={isSavingTask}
+                    showListName={taskLists.length > 1}
                   />
                 );
               })}
@@ -982,11 +1019,18 @@ export default function TaskList() {
                   <div key={task.id} className="flex items-start justify-between gap-3 p-3 bg-neutral-800/30 rounded-xl border border-transparent hover:border-neutral-700 transition-all">
                     <div className="flex-1 min-w-0">
                       <p className="text-gray-400 line-through text-sm break-words">{task.title}</p>
-                      {task.completed && (
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Completada: {format(parseISO(task.completed), "dd MMM yyyy, h:mm a")}
-                        </p>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                        {task.completed && (
+                          <span className="text-xs text-gray-500">
+                            Completada: {format(parseISO(task.completed), "dd MMM yyyy, h:mm a")}
+                          </span>
+                        )}
+                        {taskLists.length > 1 && task.listTitle && (
+                          <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-neutral-800/60 rounded-full px-2 py-0.5">
+                            {task.listTitle}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => uncompleteTask(task.id)}
