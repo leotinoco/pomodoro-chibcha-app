@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
+  Search,
 } from "lucide-react";
 import {
   DndContext,
@@ -55,6 +56,13 @@ interface Task {
   listTitle?: string;
 }
 
+/** Normaliza para buscar sin distinguir mayúsculas ni tildes ("practica" ≈ "práctica"). */
+const DIACRITICS = /[\u0300-\u036f]/g;
+
+function normalizeText(value: string) {
+  return value.normalize("NFD").replace(DIACRITICS, "").toLowerCase().trim();
+}
+
 interface CalendarEvent {
   id: string;
   summary: string;
@@ -78,11 +86,13 @@ function SortableTaskItem({
   onEditDueChange,
   isSaving,
   showListName,
+  isDragDisabled,
 }: {
   task: Task;
   isCompleted: boolean;
   isSubtask: boolean;
   showListName: boolean;
+  isDragDisabled: boolean;
   onComplete: (id: string) => void;
   getTrafficLightColor: (date?: string) => string;
   isEditing: boolean;
@@ -96,7 +106,10 @@ function SortableTaskItem({
   isSaving: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: task.id });
+    useSortable({ id: task.id, disabled: isDragDisabled });
+
+  // Con la lista filtrada, arrastrar reordenaría contra vecinos ocultos.
+  const isDragLocked = isEditing || isDragDisabled;
 
   const elementRef = useRef<HTMLDivElement>(null);
 
@@ -119,9 +132,9 @@ function SortableTaskItem({
   return (
     <div
       ref={setRefs}
-      {...(isEditing ? {} : attributes)}
-      {...(isEditing ? {} : listeners)}
-      className={`group flex items-start gap-3 p-4 bg-neutral-800/40 rounded-xl transition-all border border-transparent ${isCompleted ? "opacity-60" : "hover:bg-neutral-800/80 hover:border-neutral-700"} ${isSubtask ? "ml-8 border-l-2 border-neutral-700" : ""} ${isEditing ? "" : "touch-none"}`}
+      {...(isDragLocked ? {} : attributes)}
+      {...(isDragLocked ? {} : listeners)}
+      className={`group flex items-start gap-3 p-4 bg-neutral-800/40 rounded-xl transition-all border border-transparent ${isCompleted ? "opacity-60" : "hover:bg-neutral-800/80 hover:border-neutral-700"} ${isSubtask ? "ml-8 border-l-2 border-neutral-700" : ""} ${isDragLocked ? "" : "touch-none"}`}
     >
       {isSubtask && (
         <CornerDownRight className="w-4 h-4 text-gray-500 -ml-2 mr-1" />
@@ -254,6 +267,10 @@ export default function TaskList() {
   const [newTask, setNewTask] = useState("");
   const [newTaskDue, setNewTaskDue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const query = normalizeText(search);
+  const isSearching = query.length > 0;
 
   // Inline task editing state
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -373,6 +390,9 @@ export default function TaskList() {
     if (!over || active.id === over.id) {
       return;
     }
+
+    // La lista filtrada oculta vecinos: reordenar ahí daría un padre erróneo.
+    if (isSearching) return;
 
     const activeId = String(active.id);
     const overId = String(over.id);
@@ -786,6 +806,30 @@ export default function TaskList() {
     return result;
   })();
 
+  // ── Búsqueda de tareas ──
+  const matchesQuery = (task: Task) =>
+    normalizeText(task.title).includes(query) ||
+    (!!task.listTitle && normalizeText(task.listTitle).includes(query));
+
+  // Si coincide una subtarea, se conserva su tarea principal para no perder el
+  // contexto de la jerarquía.
+  const visibleTasks = (() => {
+    if (!isSearching) return groupedTasks;
+
+    const matched = new Set(
+      groupedTasks.filter(matchesQuery).map((t) => t.id),
+    );
+    groupedTasks.forEach((t) => {
+      if (t.parent && matched.has(t.id)) matched.add(t.parent);
+    });
+
+    return groupedTasks.filter((t) => matched.has(t.id));
+  })();
+
+  const visibleCompletedTasks = isSearching
+    ? completedTasks.filter(matchesQuery)
+    : completedTasks;
+
   const getTrafficLightColor = (dueDate?: string) => {
     if (!dueDate) return "bg-gray-500";
     const date = parseISO(dueDate);
@@ -949,6 +993,41 @@ export default function TaskList() {
           />
         </form>
 
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setSearch("");
+            }}
+            placeholder="Buscar tarea..."
+            aria-label="Buscar tarea"
+            className="w-full bg-neutral-800/60 text-white placeholder-gray-500 rounded-xl py-2.5 pl-11 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all [&::-webkit-search-cancel-button]:hidden"
+          />
+          {isSearching && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Limpiar búsqueda"
+              title="Limpiar búsqueda"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {isSearching && (
+          <p className="-mt-3 text-xs text-gray-500">
+            {visibleTasks.length + visibleCompletedTasks.length === 0
+              ? "Sin coincidencias"
+              : `${visibleTasks.length} pendiente${visibleTasks.length === 1 ? "" : "s"} · ${visibleCompletedTasks.length} terminada${visibleCompletedTasks.length === 1 ? "" : "s"}`}
+          </p>
+        )}
+
         {/* Tasks Section */}
         <div className="space-y-3">
           {tasks.length === 0 && !loading && (
@@ -959,16 +1038,22 @@ export default function TaskList() {
             </p>
           )}
 
+          {tasks.length > 0 && isSearching && visibleTasks.length === 0 && (
+            <p className="text-gray-500 text-center py-4">
+              Ninguna tarea pendiente coincide con «{search.trim()}».
+            </p>
+          )}
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={groupedTasks.map((t) => t.id)}
+              items={visibleTasks.map((t) => t.id)}
               strategy={verticalListSortingStrategy}
             >
-              {groupedTasks.map((task) => {
+              {visibleTasks.map((task) => {
                 const isCompleted =
                   locallyCompleted.has(task.id) || task.status === "completed";
                 const isSubtask = !!task.parent;
@@ -991,6 +1076,7 @@ export default function TaskList() {
                     onEditDueChange={setEditDue}
                     isSaving={isSavingTask}
                     showListName={taskLists.length > 1}
+                    isDragDisabled={isSearching}
                   />
                 );
               })}
@@ -999,13 +1085,16 @@ export default function TaskList() {
         </div>
 
         {/* Completed Tasks Accordion */}
-        {session && completedTasks.length > 0 && (
+        {session && visibleCompletedTasks.length > 0 && (
           <div className="border border-neutral-800 rounded-xl overflow-hidden mt-4">
             <button
               onClick={() => setShowCompleted(!showCompleted)}
               className="w-full flex items-center justify-between p-4 bg-neutral-800/40 hover:bg-neutral-800/80 transition-colors text-white font-medium"
             >
-              <span>Tareas terminadas ({completedTasks.length})</span>
+              <span>
+                Tareas terminadas ({visibleCompletedTasks.length}
+                {isSearching ? " coincidencia(s)" : ""})
+              </span>
               {showCompleted ? (
                 <ChevronUp className="w-5 h-5 text-gray-400" />
               ) : (
@@ -1015,7 +1104,7 @@ export default function TaskList() {
             
             {showCompleted && (
               <div className="p-4 bg-neutral-900/50 space-y-3 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700">
-                {completedTasks.map((task) => (
+                {visibleCompletedTasks.map((task) => (
                   <div key={task.id} className="flex items-start justify-between gap-3 p-3 bg-neutral-800/30 rounded-xl border border-transparent hover:border-neutral-700 transition-all">
                     <div className="flex-1 min-w-0">
                       <p className="text-gray-400 line-through text-sm break-words">{task.title}</p>
