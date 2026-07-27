@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.11.0] - 2026-07-27
+
+### <!--icon:bug--> Correcciones
+
+- **Ahora se ven TODAS tus tareas pendientes**: La app solo mostraba las primeras 20 tareas que devolvía Google. Ahora se recorren todas las páginas de resultados, así tengas cientos de tareas pendientes.
+
+- **Se incluyen todas tus listas de Google Tasks**: Antes solo se leía la primera lista de tu cuenta; las tareas guardadas en otras listas (Trabajo, Personal, Mercado, etc.) quedaban invisibles. Ahora aparecen todas juntas.
+
+- **Subtareas huérfanas visibles**: Las subtareas cuya tarea principal ya estaba completada desaparecían de la lista sin dejar rastro. Ahora se muestran al final en lugar de perderse.
+
+- **Acciones en la lista correcta**: Completar, reactivar o editar una tarea ahora se envía siempre a la lista de Google a la que realmente pertenece, evitando errores al trabajar con varias listas.
+
+- **Tareas terminadas de todas las listas**: El acordeón de tareas terminadas de los últimos 7 días ya recopila las tareas completadas en todas tus listas, no solo en la primera.
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Etiqueta de lista**: Cuando tienes más de una lista de Google Tasks, cada tarea muestra una pequeña etiqueta con el nombre de la lista a la que pertenece, tanto en las pendientes como en las terminadas.
+
+### <!--icon:gear--> Mejoras Internas
+
+- **Lectura de tareas paginada**: Las peticiones a la API de Google Tasks piden 100 elementos por página y siguen el `nextPageToken` hasta agotar los resultados, con un tope de seguridad para evitar bucles infinitos.
+
+- **Consultas en paralelo por lista**: Las tareas de cada lista se solicitan simultáneamente, de modo que sumar listas no ralentiza la carga del panel.
+
+---
+
 ## [0.10.0] - 2026-07-17
 
 ### <!--icon:shield--> Seguridad
