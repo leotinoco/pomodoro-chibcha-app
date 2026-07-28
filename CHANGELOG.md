@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.0] - 2026-07-27
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Buscador de tareas**: Nuevo campo de búsqueda en la parte superior de la sección de tareas para filtrar y encontrar cualquier tarea al instante mientras escribes.
+
+- **Búsqueda sin tildes ni mayúsculas**: Escribir «practica» encuentra «Práctica» y «Practicar», así no recuerdes cómo la escribiste originalmente.
+
+- **Filtra pendientes y terminadas**: La búsqueda cubre también el acordeón de tareas terminadas y el nombre de la lista de Google, con un contador de resultados y un botón para limpiar el filtro (o la tecla `Esc`).
+
+- **Jerarquía conservada**: Si la coincidencia es una subtarea, su tarea principal se mantiene visible para no perder el contexto.
+
+---
+
 ## [0.11.0] - 2026-07-27
 
 ### <!--icon:bug--> Correcciones
