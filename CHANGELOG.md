@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.13.0] - 2026-09-23
+
+### <!--icon:bug--> Correcciones
+
+- **Vuelve el anidado de tareas arrastrando**: Al soltar una tarea sobre otra de una lista de Google distinta, el movimiento se descartaba sin avisar (pasaba casi siempre, porque las tareas creadas desde la app van a la primera lista). Ahora la subtarea se mueve a la lista de su tarea principal y queda anidada.
+
+- **Avisos cuando algo falla**: Si Google rechaza una acción (por ejemplo, anidar una tarea repetitiva o asignada desde Docs o Chat), aparece un aviso con el motivo en lugar de que la tarea vuelva a su sitio sin explicación. Aplica también a crear, completar, editar y reactivar tareas y eventos.
+
+- **El dictado por voz vuelve a funcionar**: Una cabecera de seguridad bloqueaba el micrófono en todo el sitio, así que el botón de dictar siempre mostraba "acceso denegado". Ahora el micrófono se permite solo para la propia app.
+
+- **El Pomodoro ya no se atrasa en segundo plano**: Los navegadores ralentizan los temporizadores de las pestañas que no estás mirando y el conteo se quedaba atrás. Ahora se calcula contra la hora real y se corrige al volver a la pestaña.
+
+- **Menos recargas innecesarias**: Cambiar de pestaña y volver ya no recarga todas las tareas y el calendario, lo que además evitaba llegar al límite de solicitudes en medio de un arrastre.
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Detalles de las reuniones del cronograma**: Los eventos de hoy y mañana muestran su descripción con los enlaces activos, el botón para unirse a Meet/Zoom/Teams, el teléfono y PIN de acceso, la ubicación y los archivos adjuntos. Las descripciones largas se pueden expandir con "Ver más", y cada evento tiene un enlace para abrirlo en Google Calendar.
+
+- **Guía visual al anidar**: Mientras arrastras, la tarea que la va a contener se resalta en verde ("Soltar para anidar aquí") o en rojo si Google no lo permite, por ejemplo cuando la tarea arrastrada ya tiene subtareas.
+
+- **Sacar una subtarea**: Nuevo botón en cada subtarea para devolverla al nivel principal.
+
+- **Aviso de sesión expirada**: Si Google revoca o vence tu sesión, un aviso te invita a iniciar sesión de nuevo en lugar de mostrar listas vacías.
+
+### <!--icon:shield--> Seguridad
+
+- **Dependencias actualizadas**: Next.js 16.3.6, next-auth 4.24.15, React 19.3, googleapis 181, axios 1.20, lucide-react 1.x y el resto de paquetes. Se corrigen 15 vulnerabilidades conocidas (2 críticas), entre ellas un salto del proxy de Next.js y fallos de next-auth; `npm audit` queda en 0.
+
+- **Descripciones de eventos saneadas**: El contenido de las invitaciones lo puede escribir cualquier persona, así que se reconstruye con una lista blanca de etiquetas y solo se aceptan enlaces `http`, `https`, `mailto` y `tel`; scripts, imágenes e iframes se descartan.
+
+- **Errores de Google sin datos internos**: Los registros del servidor ya no vuelcan el objeto completo de error de Google, y el calendario solo pide los campos que se muestran (no asistentes ni correos).
+
+- **CSP más precisa**: Se retiran permisos de conexión que el navegador no usa y se habilitan los dominios regionales de Google Analytics 4, que antes quedaban bloqueados. Se añade `Cross-Origin-Opener-Policy`.
+
+- **Límite de solicitudes más justo**: Las consultas de sesión tienen su propio cupo y ya no consumen el de tareas y calendario; la limpieza del registro se hace una vez por minuto.
+
+### <!--icon:wrench--> Mantenimiento
+
+- Se elimina la dependencia `howler`, que no se usaba.
+
+---
+
 ## [0.12.0] - 2026-07-27
 
 ### <!--icon:rocket--> Nuevas Características
