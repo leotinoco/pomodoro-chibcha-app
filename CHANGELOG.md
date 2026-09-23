@@ -4,7 +4,11 @@
 
 ### <!--icon:bug--> Correcciones
 
-- **Vuelve el anidado de tareas arrastrando**: Al soltar una tarea sobre otra de una lista de Google distinta, el movimiento se descartaba sin avisar (pasaba casi siempre, porque las tareas creadas desde la app van a la primera lista). Ahora la subtarea se mueve a la lista de su tarea principal y queda anidada.
+- **Vuelve el anidado de tareas arrastrando**: Mientras arrastrabas, las demás tareas se desplazaban bajo el cursor, así que al soltar la tarea caía en otra distinta o volvía a su sitio. Ahora las filas se quedan quietas y la tarea queda anidada en la que tienes debajo del cursor.
+
+- **Anidar entre listas de Google**: Si tienes varias listas, soltar una tarea sobre otra de una lista distinta se descartaba sin avisar. Ahora la subtarea se mueve a la lista de su tarea principal.
+
+- **Encabezados del changelog**: Los títulos de cada sección mostraban una coma sobrante (", Correcciones").
 
 - **Avisos cuando algo falla**: Si Google rechaza una acción (por ejemplo, anidar una tarea repetitiva o asignada desde Docs o Chat), aparece un aviso con el motivo en lugar de que la tarea vuelva a su sitio sin explicación. Aplica también a crear, completar, editar y reactivar tareas y eventos.
 

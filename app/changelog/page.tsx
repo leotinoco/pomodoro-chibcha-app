@@ -5,6 +5,14 @@ import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Metadata } from "next";
+import type { ReactNode } from "react";
+
+/** Texto plano de los hijos de un nodo (String(array) los unía con comas). */
+function textOf(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  return "";
+}
 
 export const metadata: Metadata = {
   title: "Changelog | Pomodoro Chibcha App",
@@ -81,8 +89,11 @@ export default async function ChangelogPage() {
         <article className="prose prose-invert prose-headings:text-white prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-code:text-rose-200 prose-pre:bg-neutral-900 prose-li:text-zinc-300">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
+            // react-markdown pasa `node` (el AST) a cada componente; se descarta
+            // para que no termine como atributo node="[object Object]".
             components={{
-              h2: ({ ...props }) => (
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              h2: ({ node, ...props }) => (
                 <div className="mt-12 mb-6 pb-2 border-b border-neutral-800">
                   <h2
                     className="text-3xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 inline-block"
@@ -90,9 +101,12 @@ export default async function ChangelogPage() {
                   />
                 </div>
               ),
-              h3: ({ children, ...props }) => {
-                const text = String(children || "");
-                const cleanText = text.replace(/<!--icon:\w+-->\s?/g, "");
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              h3: ({ node, children, ...props }) => {
+                const text = textOf(children);
+                const cleanText = text
+                  .replace(/<!--icon:\w+-->\s?/g, "")
+                  .trim();
                 const iconHtml = getIconForHeading(text);
 
                 return (
@@ -110,13 +124,16 @@ export default async function ChangelogPage() {
                   </h3>
                 );
               },
-              ul: ({ ...props }) => (
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              ul: ({ node, ...props }) => (
                 <ul className="list-disc pl-5 space-y-3 mb-6" {...props} />
               ),
-              li: ({ ...props }) => (
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              li: ({ node, ...props }) => (
                 <li className="text-zinc-300 leading-relaxed" {...props} />
               ),
-              p: ({ ...props }) => (
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              p: ({ node, ...props }) => (
                 <p className="mb-4 text-zinc-300 leading-relaxed" {...props} />
               ),
             }}
