@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getGoogleClient } from "@/lib/google";
-import { google } from "googleapis";
+import { googleErrorResponse } from "@/lib/googleErrors";
+import { calendar_v3, google } from "googleapis";
 import { z } from "zod";
+import type { CalendarEvent } from "@/types/calendar";
 
 const calendarEventSchema = z.object({
   summary: z.string().min(1).max(500).trim(),
@@ -13,12 +15,56 @@ const calendarEventSchema = z.object({
 });
 
 const calendarPatchSchema = z.object({
-  eventId: z.string().min(1),
+  eventId: z.string().min(1).max(1024),
   summary: z.string().min(1).max(500).trim(),
 });
 
-function sanitizeError() {
-  return { error: "Internal server error" };
+// Sólo los campos que muestra el panel: evita traer asistentes, correos, etc.
+const EVENT_FIELDS = [
+  "id",
+  "summary",
+  "description",
+  "location",
+  "htmlLink",
+  "hangoutLink",
+  "start",
+  "end",
+  "conferenceData(conferenceSolution/name,entryPoints(entryPointType,uri,label,pin))",
+  "attachments(title,fileUrl)",
+].join(",");
+
+function toClientEvent(event: calendar_v3.Schema$Event): CalendarEvent {
+  const entryPoints = event.conferenceData?.entryPoints ?? [];
+  const video = entryPoints.find((e) => e.entryPointType === "video" && e.uri);
+  const phone = entryPoints.find((e) => e.entryPointType === "phone" && e.uri);
+
+  return {
+    id: event.id ?? "",
+    summary: event.summary || "(Sin título)",
+    start: {
+      dateTime: event.start?.dateTime ?? undefined,
+      date: event.start?.date ?? undefined,
+    },
+    end: {
+      dateTime: event.end?.dateTime ?? undefined,
+      date: event.end?.date ?? undefined,
+    },
+    description: event.description || undefined,
+    location: event.location || undefined,
+    htmlLink: event.htmlLink || undefined,
+    meetLink: video?.uri || event.hangoutLink || undefined,
+    conferenceName: event.conferenceData?.conferenceSolution?.name || undefined,
+    phone: phone?.uri
+      ? {
+          uri: phone.uri,
+          label: phone.label || undefined,
+          pin: phone.pin || undefined,
+        }
+      : undefined,
+    attachments: (event.attachments ?? []).flatMap((a) =>
+      a.fileUrl ? [{ title: a.title || undefined, fileUrl: a.fileUrl }] : [],
+    ),
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -42,14 +88,16 @@ export async function GET(req: NextRequest) {
       timeMax: endOfTomorrow.toISOString(),
       singleEvents: true,
       orderBy: "startTime",
+      fields: `items(${EVENT_FIELDS})`,
     });
 
     return NextResponse.json({
-      events: response.data.items || [],
+      events: (response.data.items || [])
+        .filter((event) => event.id)
+        .map(toClientEvent),
     });
   } catch (error) {
-    console.error("Error fetching calendar events:", error);
-    return NextResponse.json(sanitizeError(), { status: 500 });
+    return googleErrorResponse("Error fetching calendar events", error);
   }
 }
 
@@ -91,8 +139,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(response.data);
   } catch (error) {
-    console.error("Error creating calendar event:", error);
-    return NextResponse.json(sanitizeError(), { status: 500 });
+    return googleErrorResponse("Error creating calendar event", error);
   }
 }
 
@@ -131,7 +178,6 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json(response.data);
   } catch (error) {
-    console.error("Error updating calendar event:", error);
-    return NextResponse.json(sanitizeError(), { status: 500 });
+    return googleErrorResponse("Error updating calendar event", error);
   }
 }

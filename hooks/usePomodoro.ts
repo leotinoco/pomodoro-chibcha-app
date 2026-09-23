@@ -23,8 +23,8 @@ export const usePomodoro = (options: UsePomodoroOptions = {}) => {
   const [isActive, setIsActive] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [phaseId, setPhaseId] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const notifiedPhaseRef = useRef<number | null>(null);
+  const timeLeftRef = useRef(timeLeft);
 
   const requestNotificationPermission = useCallback(() => {
     if ("Notification" in window && Notification.permission !== "granted") {
@@ -84,27 +84,45 @@ export const usePomodoro = (options: UsePomodoroOptions = {}) => {
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification("Time's up!", {
         body: `${mode === "focus" ? "Focus session" : "Break"} completed. Starting next phase.`,
-        icon: "/icon.png",
+        icon: "/logo-pomodoro.avif",
       });
     }
   }, [focusDuration, mode, onPhaseEnd, sessionsCompleted, startPhase]);
 
+  const completePhaseRef = useRef(completePhase);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+    completePhaseRef.current = completePhase;
+  }, [timeLeft, completePhase]);
+
+  // El conteo se calcula contra la hora de fin: los navegadores ralentizan los
+  // intervalos en pestañas en segundo plano (hasta 1 por minuto) y descontar
+  // un segundo por tick hacía que el Pomodoro se atrasara.
   useEffect(() => {
     if (!isActive) return;
 
-    timerRef.current = setInterval(() => {
-      if (timeLeft <= 1) {
-        setTimeLeft(0);
-        completePhase();
-      } else {
-        setTimeLeft(timeLeft - 1);
+    const endAt = Date.now() + timeLeftRef.current * 1000;
+    let finished = false;
+
+    const tick = () => {
+      if (finished) return;
+      const remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining === 0) {
+        finished = true;
+        completePhaseRef.current();
       }
-    }, 1000);
+    };
+
+    const interval = setInterval(tick, 500);
+    document.addEventListener("visibilitychange", tick);
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", tick);
     };
-  }, [completePhase, isActive, timeLeft]);
+  }, [isActive, phaseId]);
 
   useEffect(() => {
     if (!onPhaseStart) return;

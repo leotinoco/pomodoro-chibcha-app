@@ -59,7 +59,10 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
 }
 
 export default function Dashboard() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  // Booleano estable: el objeto de sesión cambia en cada refresco (p. ej. al
+  // volver a la pestaña) y reiniciaba el sondeo del calendario.
+  const isAuthenticated = status === "authenticated";
   const [state, dispatch] = useReducer(calendarReducer, initialState);
   const [isDucking, setIsDucking] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -89,7 +92,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (!session) return;
+    if (!isAuthenticated) return;
 
     const checkCalendar = async () => {
       dispatch({ type: "FETCH_START" });
@@ -124,7 +127,7 @@ export default function Dashboard() {
     checkCalendar();
     const interval = setInterval(checkCalendar, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [session]);
+  }, [isAuthenticated]);
 
   const handlePlaySfx = useCallback(
     (type: SfxType) => {
@@ -196,6 +199,26 @@ export default function Dashboard() {
             </button>
           )}
         </header>
+
+        {/* Expired Google session: the refresh token was revoked or expired */}
+        {session?.error === "RefreshAccessTokenError" && (
+          <div
+            role="alert"
+            className="bg-amber-500/10 border border-amber-500/50 p-4 rounded-xl flex flex-wrap items-center gap-4"
+          >
+            <AlertTriangle className="size-6 text-amber-400" />
+            <p className="flex-1 min-w-48 text-amber-100 text-sm">
+              Tu sesión con Google expiró. Vuelve a iniciar sesión para ver
+              tus tareas y eventos.
+            </p>
+            <button
+              onClick={() => signIn("google")}
+              className="px-4 py-2 bg-white text-black rounded-full font-semibold text-sm hover:scale-105 transition-transform"
+            >
+              Iniciar sesión de nuevo
+            </button>
+          </div>
+        )}
 
         {/* Meeting Alert */}
         {state.upcomingMeeting && (

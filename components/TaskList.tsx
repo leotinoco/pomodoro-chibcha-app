@@ -27,22 +27,28 @@ import {
   ChevronUp,
   RotateCcw,
   Search,
+  CornerLeftUp,
+  CircleAlert,
 } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
   PointerSensor,
-  closestCenter,
+  pointerWithin,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
+  SortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import confetti from "canvas-confetti";
+import EventDetails from "./EventDetails";
+import type { CalendarEvent } from "@/types/calendar";
 
 interface Task {
   id: string;
@@ -54,6 +60,27 @@ interface Task {
   /** Lista de Google Tasks a la que pertenece (ausente en tareas locales). */
   listId?: string;
   listTitle?: string;
+  /** Presente en tareas asignadas desde Docs o Chat (Google no permite anidarlas). */
+  assignmentInfo?: unknown;
+}
+
+/** Resultado de soltar una tarea sobre otra: dónde quedaría anidada o por qué no. */
+type NestPlan =
+  | { ok: true; targetId: string; parent: Task }
+  | { ok: false; targetId: string; reason: string };
+
+// Arrastrar sirve para anidar: las demás filas no se desplazan, así la fila de
+// destino se queda quieta bajo el cursor.
+const keepInPlace: SortingStrategy = () => null;
+
+/** Mensaje de error de la API (ya apto para el usuario) o el texto por defecto. */
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const message = (error.response?.data as { error?: unknown } | undefined)
+      ?.error;
+    if (typeof message === "string" && message) return message;
+  }
+  return fallback;
 }
 
 /** Normaliza para buscar sin distinguir mayúsculas ni tildes ("practica" ≈ "práctica"). */
@@ -61,13 +88,6 @@ const DIACRITICS = /[\u0300-\u036f]/g;
 
 function normalizeText(value: string) {
   return value.normalize("NFD").replace(DIACRITICS, "").toLowerCase().trim();
-}
-
-interface CalendarEvent {
-  id: string;
-  summary: string;
-  start: { dateTime?: string; date?: string };
-  end: { dateTime?: string; date?: string };
 }
 
 function SortableTaskItem({
@@ -87,12 +107,17 @@ function SortableTaskItem({
   isSaving,
   showListName,
   isDragDisabled,
+  dropTarget,
+  onOutdent,
 }: {
   task: Task;
   isCompleted: boolean;
   isSubtask: boolean;
   showListName: boolean;
   isDragDisabled: boolean;
+  /** Estado de la fila como destino del arrastre en curso. */
+  dropTarget: { ok: true } | { ok: false; reason: string } | null;
+  onOutdent: (task: Task) => void;
   onComplete: (id: string) => void;
   getTrafficLightColor: (date?: string) => string;
   isEditing: boolean;
@@ -105,8 +130,14 @@ function SortableTaskItem({
   onEditDueChange: (v: string) => void;
   isSaving: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: task.id, disabled: isDragDisabled });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id, disabled: isDragDisabled });
 
   // Con la lista filtrada, arrastrar reordenaría contra vecinos ocultos.
   const isDragLocked = isEditing || isDragDisabled;
@@ -123,19 +154,42 @@ function SortableTaskItem({
 
   useLayoutEffect(() => {
     if (elementRef.current) {
-      elementRef.current.style.transform =
-        CSS.Transform.toString(transform) ?? "";
-      elementRef.current.style.transition = transition || "";
+      const base = CSS.Transform.toString(transform) ?? "";
+      // Mientras se arrastra, la tarjeta se corre a la derecha (como una
+      // subtarea) para dejar visible la fila de destino, y sin transición
+      // para que siga al cursor sin retraso.
+      elementRef.current.style.transform = isDragging
+        ? `${base} translateX(32px)`
+        : base;
+      elementRef.current.style.transition = isDragging
+        ? "none"
+        : transition || "";
     }
-  }, [transform, transition]);
+  }, [transform, transition, isDragging]);
+
+  const surface = isDragging
+    ? "z-20 cursor-grabbing bg-neutral-800/80 opacity-90 shadow-2xl ring-2 ring-blue-500/60"
+    : dropTarget?.ok
+      ? "bg-emerald-500/15 ring-2 ring-emerald-500/70"
+      : dropTarget
+        ? "bg-red-500/10 ring-2 ring-red-500/60"
+        : `bg-neutral-800/40 ${isCompleted ? "" : "hover:bg-neutral-800/80 hover:border-neutral-700"}`;
 
   return (
     <div
       ref={setRefs}
       {...(isDragLocked ? {} : attributes)}
       {...(isDragLocked ? {} : listeners)}
-      className={`group flex items-start gap-3 p-4 bg-neutral-800/40 rounded-xl transition-all border border-transparent ${isCompleted ? "opacity-60" : "hover:bg-neutral-800/80 hover:border-neutral-700"} ${isSubtask ? "ml-8 border-l-2 border-neutral-700" : ""} ${isDragLocked ? "" : "touch-none"}`}
+      className={`group relative flex items-start gap-3 p-4 rounded-xl transition-all border border-transparent ${surface} ${isCompleted ? "opacity-60" : ""} ${isSubtask ? "ml-8 border-l-2 border-neutral-700" : ""} ${isDragLocked ? "" : "touch-none cursor-grab"}`}
     >
+      {dropTarget && (
+        <span
+          className={`absolute -top-2.5 right-4 z-30 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow pointer-events-none ${dropTarget.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}
+          title={dropTarget.ok ? undefined : dropTarget.reason}
+        >
+          {dropTarget.ok ? "Soltar para anidar aquí" : "No se puede anidar"}
+        </span>
+      )}
       {isSubtask && (
         <CornerDownRight className="w-4 h-4 text-gray-500 -ml-2 mr-1" />
       )}
@@ -231,14 +285,27 @@ function SortableTaskItem({
               </button>
             </>
           ) : (
-            <button
-              onClick={(e) => { e.stopPropagation(); onEditStart(task); }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-white/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-              aria-label="Edit task"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
+            <>
+              {isSubtask && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onOutdent(task); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="p-1.5 text-gray-500 hover:text-emerald-400 hover:bg-white/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Sacar de la tarea principal"
+                  title="Sacar de la tarea principal"
+                >
+                  <CornerLeftUp className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); onEditStart(task); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-white/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                aria-label="Edit task"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       )}
@@ -255,7 +322,10 @@ function SortableTaskItem({
 }
 
 export default function TaskList() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  // useSession entrega un objeto nuevo cada vez que refresca la sesión (p. ej.
+  // al volver a la pestaña); depender de él recargaba todo en cada foco.
+  const isAuthenticated = sessionStatus === "authenticated";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -268,6 +338,11 @@ export default function TaskList() {
   const [newTaskDue, setNewTaskDue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [search, setSearch] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Arrastre en curso: tarea que se mueve y fila bajo el cursor.
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [overDragId, setOverDragId] = useState<string | null>(null);
 
   const query = normalizeText(search);
   const isSearching = query.length > 0;
@@ -339,7 +414,7 @@ export default function TaskList() {
   );
 
   const fetchTasks = useCallback(async () => {
-    if (!session) return;
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const [res, compRes, calendarRes] = await Promise.all([
@@ -354,16 +429,17 @@ export default function TaskList() {
       setEvents(calendarRes.data.events || []);
     } catch (error) {
       console.error("Failed to fetch tasks", error);
+      setNotice(apiErrorMessage(error, "No se pudieron cargar tus tareas."));
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, [isAuthenticated]);
 
   // Load tasks on mount or session change
   useEffect(() => {
-    if (session) {
+    if (isAuthenticated) {
       fetchTasks();
-    } else {
+    } else if (sessionStatus === "unauthenticated") {
       // Load local tasks
       const savedTasks = localStorage.getItem("localTasks");
       if (savedTasks) {
@@ -377,58 +453,65 @@ export default function TaskList() {
         setTasks([]);
       }
     }
-  }, [session, fetchTasks]);
+  }, [isAuthenticated, sessionStatus, fetchTasks]);
+
+  // Los avisos se ocultan solos.
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(null), 7000);
+    return () => clearTimeout(timeout);
+  }, [notice]);
 
   const saveLocalTasks = (newTasks: Task[]) => {
     setTasks(newTasks);
     localStorage.setItem("localTasks", JSON.stringify(newTasks));
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
+  // Google Tasks admite un solo nivel de subtareas: soltar sobre una subtarea
+  // equivale a soltar sobre su tarea principal.
+  const planNesting = (activeId: string, overId: string): NestPlan | null => {
+    const active = tasks.find((t) => t.id === activeId);
+    const over = tasks.find((t) => t.id === overId);
+    if (!active || !over || active.id === over.id) return null;
 
-    if (!over || active.id === over.id) {
-      return;
+    const parent = tasks.find((t) => t.id === (over.parent ?? over.id));
+    if (!parent || parent.id === active.id || active.parent === parent.id) {
+      return null;
     }
 
-    // La lista filtrada oculta vecinos: reordenar ahí daría un padre erróneo.
-    if (isSearching) return;
-
-    const activeId = String(active.id);
-    const overId = String(over.id);
-
-    // Find indices
-    const oldIndex = tasks.findIndex((t) => t.id === activeId);
-    const newIndex = tasks.findIndex((t) => t.id === overId);
-
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    // Create new array with moved item
-    const newTasks = [...tasks];
-    newTasks.splice(oldIndex, 1);
-
-    const activeTask = tasks.find((t) => t.id === activeId);
-    const overTask = tasks.find((t) => t.id === overId);
-
-    if (!activeTask || !overTask) return;
-
-    // Google Tasks no permite mover una tarea entre listas distintas.
-    if (activeTask.listId !== overTask.listId) return;
-
-    let newParentId: string | undefined;
-    if (!overTask.parent) {
-      newParentId = overTask.id;
-    } else {
-      newParentId = overTask.parent;
+    if (tasks.some((t) => t.parent === active.id)) {
+      return {
+        ok: false,
+        targetId: parent.id,
+        reason: `«${active.title}» ya tiene subtareas y Google Tasks solo permite un nivel. Saca primero sus subtareas.`,
+      };
     }
 
-    if (activeTask.parent === newParentId) {
-      return;
+    if (active.assignmentInfo || parent.assignmentInfo) {
+      return {
+        ok: false,
+        targetId: parent.id,
+        reason: "Las tareas asignadas desde Google Docs o Chat no se pueden anidar.",
+      };
     }
 
-    // Update parent
+    return { ok: true, targetId: parent.id, parent };
+  };
+
+  /** Anida la tarea bajo `parent` o, con null, la deja en el nivel principal. */
+  const moveTask = async (taskId: string, parent: Task | null) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
     const updatedTasks = tasks.map((t) =>
-      t.id === activeId ? { ...t, parent: newParentId } : t,
+      t.id === taskId
+        ? {
+            ...t,
+            parent: parent?.id,
+            listId: parent?.listId ?? t.listId,
+            listTitle: parent?.listTitle ?? t.listTitle,
+          }
+        : t,
     );
 
     if (!session) {
@@ -438,17 +521,60 @@ export default function TaskList() {
 
     setTasks(updatedTasks); // Optimistic update
 
+    // Si la tarea principal está en otra lista, Google mueve la subtarea a esa
+    // lista (antes se descartaba el arrastre sin avisar).
+    const sourceList = task.listId ?? listId;
+    const targetList = parent?.listId ?? sourceList;
+    const changesList = !!targetList && targetList !== sourceList;
+
     try {
       await axios.patch("/api/tasks", {
-        tasklist: activeTask.listId ?? listId,
-        task: activeId,
-        parent: newParentId,
+        tasklist: sourceList,
+        task: taskId,
+        parent: parent?.id ?? null,
+        ...(changesList && { destinationTasklist: targetList }),
       });
+      if (changesList) await fetchTasks();
     } catch (error) {
       console.error("Failed to move task", error);
+      setNotice(apiErrorMessage(error, "No se pudo mover la tarea."));
       fetchTasks();
     }
   };
+
+  const resetDrag = () => {
+    setActiveDragId(null);
+    setOverDragId(null);
+  };
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    setActiveDragId(String(active.id));
+    setOverDragId(null);
+  };
+
+  const handleDragOver = ({ over }: DragOverEvent) => {
+    setOverDragId(over ? String(over.id) : null);
+  };
+
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    resetDrag();
+
+    // La lista filtrada oculta vecinos: reordenar ahí daría un padre erróneo.
+    if (!over || isSearching) return;
+
+    const plan = planNesting(String(active.id), String(over.id));
+    if (!plan) return;
+
+    if (!plan.ok) {
+      setNotice(plan.reason);
+      return;
+    }
+
+    await moveTask(String(active.id), plan.parent);
+  };
+
+  const dragPlan =
+    activeDragId && overDragId ? planNesting(activeDragId, overDragId) : null;
 
   // Track locally completed tasks to keep them visible and struck through
   const [locallyCompleted, setLocallyCompleted] = useState<Set<string>>(
@@ -525,6 +651,7 @@ export default function TaskList() {
       await fetchTasks();
     } catch (error) {
       console.error("Failed to add task", error);
+      setNotice(apiErrorMessage(error, "No se pudo crear la tarea."));
     } finally {
       setIsAdding(false);
     }
@@ -565,6 +692,7 @@ export default function TaskList() {
       await fetchTasks();
     } catch (error) {
       console.error("Failed to add event", error);
+      setNotice(apiErrorMessage(error, "No se pudo crear el evento."));
     } finally {
       setIsAddingEvent(false);
     }
@@ -595,6 +723,7 @@ export default function TaskList() {
       });
     } catch (error) {
       console.error("Failed to complete task", error);
+      setNotice(apiErrorMessage(error, "No se pudo completar la tarea."));
       setLocallyCompleted((prev) => {
         const next = new Set(prev);
         next.delete(taskId);
@@ -626,6 +755,7 @@ export default function TaskList() {
       fetchTasks();
     } catch (error) {
       console.error("Failed to uncomplete task", error);
+      setNotice(apiErrorMessage(error, "No se pudo reactivar la tarea."));
     }
   };
 
@@ -684,6 +814,7 @@ export default function TaskList() {
       handleTaskEditCancel();
     } catch (error) {
       console.error("Failed to update task", error);
+      setNotice(apiErrorMessage(error, "No se pudo guardar la tarea."));
     } finally {
       setIsSavingTask(false);
     }
@@ -720,6 +851,7 @@ export default function TaskList() {
       handleEventEditCancel();
     } catch (error) {
       console.error("Failed to update event", error);
+      setNotice(apiErrorMessage(error, "No se pudo guardar el evento."));
     } finally {
       setIsSavingEvent(false);
     }
@@ -880,7 +1012,23 @@ export default function TaskList() {
             >
               {event.summary}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">{getEventTime(event)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {getEventTime(event)}
+              {event.htmlLink && (
+                <>
+                  {" · "}
+                  <a
+                    href={event.htmlLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-gray-300 underline decoration-gray-600 underline-offset-2"
+                  >
+                    Abrir en Calendar
+                  </a>
+                </>
+              )}
+            </p>
+            <EventDetails event={event} />
           </div>
         )}
 
@@ -1028,9 +1176,27 @@ export default function TaskList() {
           </p>
         )}
 
+        {notice && (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200"
+          >
+            <CircleAlert className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-400" />
+            <p className="flex-1">{notice}</p>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="p-0.5 text-red-300 hover:text-white rounded transition-colors"
+              aria-label="Cerrar aviso"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Tasks Section */}
         <div className="space-y-3">
-          {tasks.length === 0 && !loading && (
+          {tasks.length === 0 && !loading && sessionStatus !== "loading" && (
             <p className="text-gray-500 text-center py-4">
               {session
                 ? "No tasks pending. Chill!"
@@ -1046,12 +1212,15 @@ export default function TaskList() {
 
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={pointerWithin}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={resetDrag}
           >
             <SortableContext
               items={visibleTasks.map((t) => t.id)}
-              strategy={verticalListSortingStrategy}
+              strategy={keepInPlace}
             >
               {visibleTasks.map((task) => {
                 const isCompleted =
@@ -1077,6 +1246,14 @@ export default function TaskList() {
                     isSaving={isSavingTask}
                     showListName={taskLists.length > 1}
                     isDragDisabled={isSearching}
+                    dropTarget={
+                      dragPlan?.targetId === task.id
+                        ? dragPlan.ok
+                          ? { ok: true }
+                          : { ok: false, reason: dragPlan.reason }
+                        : null
+                    }
+                    onOutdent={(t) => moveTask(t.id, null)}
                   />
                 );
               })}

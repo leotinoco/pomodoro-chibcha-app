@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { getGoogleClient } from "@/lib/google";
+import { googleErrorResponse } from "@/lib/googleErrors";
 import { google, tasks_v1 } from "googleapis";
 import { z } from "zod";
 
@@ -9,26 +10,31 @@ import { z } from "zod";
 const PAGE_SIZE = 100;
 const MAX_PAGES = 20;
 
+const googleId = z.string().min(1).max(256);
+
 const taskPatchSchema = z.object({
-  tasklist: z.string().min(1),
-  task: z.string().min(1),
+  tasklist: googleId,
+  task: googleId,
   status: z.enum(["needsAction", "completed"]).optional(),
-  parent: z.string().optional().nullable(),
-  previous: z.string().optional().nullable(),
+  parent: googleId.optional().nullable(),
+  previous: googleId.optional().nullable(),
+  /** Lista destino al anidar bajo una tarea de otra lista. */
+  destinationTasklist: googleId.optional(),
   due: z.string().datetime().optional().nullable(),
   title: z.string().min(1).max(1024).trim().optional(),
 });
 
 const taskCreateSchema = z.object({
-  tasklist: z.string().optional(),
+  tasklist: googleId.optional(),
   title: z.string().min(1).max(1024).trim(),
   status: z.enum(["needsAction", "completed"]).optional(),
   due: z.string().datetime().optional().nullable(),
 });
 
-function sanitizeError() {
-  return { error: "Internal server error" };
-}
+// Restricciones de Google Tasks al mover (documentadas en tasks.move).
+const MOVE_ERROR_MESSAGES = {
+  400: "Google Tasks no permitió anidar esta tarea. Las tareas repetitivas y las asignadas desde Docs o Chat no pueden tener subtareas ni ser subtareas.",
+};
 
 type TaskWithList = tasks_v1.Schema$Task & {
   listId: string;
@@ -172,8 +178,7 @@ export async function GET(req: NextRequest) {
       lists,
     });
   } catch (error) {
-    console.error("Error fetching tasks:", error);
-    return NextResponse.json(sanitizeError(), { status: 500 });
+    return googleErrorResponse("Error fetching tasks", error);
   }
 }
 
@@ -198,20 +203,46 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  const { tasklist, task, status, parent, previous, due, title } = parsed.data;
+  const {
+    tasklist,
+    task,
+    status,
+    parent,
+    previous,
+    destinationTasklist,
+    due,
+    title,
+  } = parsed.data;
 
   const auth = getGoogleClient(token.accessToken as string);
   const service = google.tasks({ version: "v1", auth });
 
   try {
-    if (parent !== undefined || previous !== undefined) {
-      const moveResponse = await service.tasks.move({
-        tasklist,
-        task,
-        parent: parent || undefined,
-        previous: previous || undefined,
-      });
-      return NextResponse.json(moveResponse.data);
+    if (
+      parent !== undefined ||
+      previous !== undefined ||
+      destinationTasklist !== undefined
+    ) {
+      try {
+        const moveResponse = await service.tasks.move({
+          tasklist,
+          task,
+          // Sin parent la tarea queda en el nivel principal.
+          parent: parent || undefined,
+          previous: previous || undefined,
+          destinationTasklist:
+            destinationTasklist && destinationTasklist !== tasklist
+              ? destinationTasklist
+              : undefined,
+        });
+        return NextResponse.json(moveResponse.data);
+      } catch (error) {
+        return googleErrorResponse(
+          "Error moving task",
+          error,
+          MOVE_ERROR_MESSAGES,
+        );
+      }
     }
 
     const response = await service.tasks.patch({
@@ -226,8 +257,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json(response.data);
   } catch (error) {
-    console.error("Error updating task (Google API):", error);
-    return NextResponse.json(sanitizeError(), { status: 500 });
+    return googleErrorResponse("Error updating task", error);
   }
 }
 
@@ -275,7 +305,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(response.data);
   } catch (error) {
-    console.error("Error creating task:", error);
-    return NextResponse.json(sanitizeError(), { status: 500 });
+    return googleErrorResponse("Error creating task", error);
   }
 }

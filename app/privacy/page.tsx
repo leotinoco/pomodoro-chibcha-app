@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
             Política de Privacidad
           </h1>
           <p className="text-lg text-slate-400">
-            Última actualización: 17 de julio de 2026
+            Última actualización: 23 de septiembre de 2026
           </p>
         </div>
 
@@ -62,9 +62,10 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Eventos de Google Calendar</strong> (<code>auth/calendar.events</code>): Para mostrar sus
-                reuniones del día (&quot;Today&quot;) y de mañana (&quot;Tomorrow&quot;), registrar sesiones Pomodoro como eventos y
-                pausar automáticamente la música ambiental cuando una reunión esté a punto de comenzar. No solicitamos
-                acceso a la configuración ni a la compartición de sus calendarios.
+                reuniones del día (&quot;Today&quot;) y de mañana (&quot;Tomorrow&quot;) con su título, horario, descripción,
+                ubicación, enlace de videollamada y archivos adjuntos, registrar sesiones Pomodoro como eventos y
+                pausar automáticamente la música ambiental cuando una reunión esté a punto de comenzar. No leemos la
+                lista de asistentes ni solicitamos acceso a la configuración o a la compartición de sus calendarios.
               </li>
               <li>
                 <strong>Perfil Básico:</strong> Obtenemos su nombre y correo electrónico únicamente para

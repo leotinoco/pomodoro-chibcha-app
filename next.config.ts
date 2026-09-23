@@ -49,9 +49,12 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               scriptSrc,
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://lh3.googleusercontent.com https://www.google-analytics.com",
+              // GA4 recolecta en subdominios regionales (region1.google-analytics.com,
+              // *.analytics.google.com). Las APIs de Google sólo se llaman
+              // desde el servidor, así que el navegador no necesita acceso.
+              "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.google-analytics.com https://*.googletagmanager.com",
               "font-src 'self'",
-              "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://www.google-analytics.com",
+              "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
               "media-src 'self' blob:",
               "object-src 'none'",
               "frame-ancestors 'none'",
@@ -60,8 +63,14 @@ const nextConfig: NextConfig = {
             ].join("; "),
           },
           {
+            // El dictado por voz de tareas y eventos necesita el micrófono en
+            // este mismo origen; con microphone=() el navegador lo bloqueaba.
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(self), geolocation=()",
+          },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
           },
         ],
       },
