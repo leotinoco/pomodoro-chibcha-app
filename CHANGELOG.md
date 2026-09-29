@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.14.0] - 2026-09-29
+
+### <!--icon:rocket--> Nuevas Características
+
+- **Asistente de IA en el dashboard**: nuevo chat en el que escribes, dictas por voz o pegas una imagen (una invitación, un itinerario, una captura) y la IA propone crear una tarea, un evento de calendario o dividir una tarea grande en subtareas tipo Pomodoro que quepan en el tiempo que le des. Nada se crea sin que confirmes la propuesta.
+
+- **Cadena de 10 proveedores de IA gratuitos**: el asistente prueba en cascada Groq, Gemini, OpenRouter, Hugging Face, Mistral, Cerebras, Together AI, DeepSeek, GitHub Models y Cohere. Si a uno le falta la API key, agotó su cuota diaria o falla, pasa automáticamente al siguiente sin que el usuario lo note.
+
+- **Recordatorios de calendario configurables**: al crear un evento, a mano o desde el chat de IA, puedes elegir que Google avise 15, 10 o 5 minutos antes.
+
+- **Recordatorios también dentro de la app**: además del aviso nativo de Google, el dashboard muestra un banner con sonido y notificación de escritorio cuando un evento se acerca, para que no se pase por alto si el celular está en silencio por estar trabajando o estudiando.
+
+- **Subtareas de la IA directo al Pomodoro**: la división de una tarea grande se puede enviar con un clic al temporizador, que va corriendo cada subtarea con el tiempo asignado y un descanso corto entre pasos.
+
+---
+
 ## [0.13.0] - 2026-09-23
 
 ### <!--icon:bug--> Correcciones
