@@ -42,3 +42,19 @@ body {
   width: 20px;
   height: 20px;
 }
+
+/* Entrada animada y escalonada para listas generadas por la IA (ej. subtareas). */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-in {
+  animation: fadeSlideIn 0.35s ease-out both;
+}

@@ -9,6 +9,8 @@ const MODES: Record<Mode, number> = {
   meal: 60 * 60,
 };
 
+export type QueueStep = { title: string; minutes: number };
+
 type UsePomodoroOptions = {
   onPhaseStart?: (mode: Mode) => void;
   onPhaseEnd?: (mode: Mode) => void;
@@ -23,6 +25,12 @@ export const usePomodoro = (options: UsePomodoroOptions = {}) => {
   const [isActive, setIsActive] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [phaseId, setPhaseId] = useState(0);
+  // Cola de subtareas con tiempo asignado (ej. generada por la IA a partir de
+  // un límite de tiempo). Mientras hay cola activa, cada foco usa la duración
+  // del paso en curso en vez de `focusDuration`, con un descanso corto entre
+  // pasos.
+  const [queue, setQueue] = useState<QueueStep[] | null>(null);
+  const [queueIndex, setQueueIndex] = useState(0);
   const notifiedPhaseRef = useRef<number | null>(null);
   const timeLeftRef = useRef(timeLeft);
 
@@ -66,13 +74,47 @@ export const usePomodoro = (options: UsePomodoroOptions = {}) => {
     setTimeLeft(mode === "focus" ? focusDuration : MODES[mode]);
     setSessionsCompleted(0);
     setPhaseId((prev) => prev + 1);
+    setQueue(null);
+    setQueueIndex(0);
     notifiedPhaseRef.current = null;
   }, [focusDuration, mode]);
+
+  /** Carga una lista de subtareas con tiempo asignado y arranca la primera en foco. */
+  const loadQueue = useCallback(
+    (steps: QueueStep[]) => {
+      if (steps.length === 0) return;
+      setQueue(steps);
+      setQueueIndex(0);
+      startPhase("focus", steps[0].minutes * 60, false);
+    },
+    [startPhase],
+  );
+
+  const clearQueue = useCallback(() => {
+    setQueue(null);
+    setQueueIndex(0);
+  }, []);
 
   const completePhase = useCallback(() => {
     onPhaseEnd?.(mode);
 
-    if (mode === "focus") {
+    if (queue) {
+      if (mode === "focus") {
+        const isLastStep = queueIndex >= queue.length - 1;
+        if (isLastStep) {
+          setQueue(null);
+          setQueueIndex(0);
+          startPhase("focus", focusDuration, false);
+        } else {
+          startPhase("shortBreak", MODES.shortBreak, true);
+        }
+      } else {
+        // Terminó el descanso entre pasos: seguir con la siguiente subtarea.
+        const nextIndex = queueIndex + 1;
+        setQueueIndex(nextIndex);
+        startPhase("focus", queue[nextIndex].minutes * 60, true);
+      }
+    } else if (mode === "focus") {
       const newCompleted = sessionsCompleted + 1;
       setSessionsCompleted(newCompleted);
       const nextMode = newCompleted % 4 === 0 ? "longBreak" : "shortBreak";
@@ -87,7 +129,7 @@ export const usePomodoro = (options: UsePomodoroOptions = {}) => {
         icon: "/logo-pomodoro.avif",
       });
     }
-  }, [focusDuration, mode, onPhaseEnd, sessionsCompleted, startPhase]);
+  }, [focusDuration, mode, onPhaseEnd, sessionsCompleted, startPhase, queue, queueIndex]);
 
   const completePhaseRef = useRef(completePhase);
 
@@ -145,6 +187,11 @@ export const usePomodoro = (options: UsePomodoroOptions = {}) => {
     switchMode,
     toggleTimer,
     resetTimer,
+    queue,
+    queueIndex,
+    activeStep: queue ? queue[queueIndex] : null,
+    loadQueue,
+    clearQueue,
     formatTime: (seconds: number) => {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;

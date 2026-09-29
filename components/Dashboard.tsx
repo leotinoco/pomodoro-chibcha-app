@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import TaskList from "./TaskList";
-import PomodoroTimer from "./PomodoroTimer";
+import PomodoroTimer, { PomodoroTimerHandle } from "./PomodoroTimer";
 import AmbientPlayer from "./AmbientPlayer";
 import Mascot from "./Mascot";
+import AIChat from "./AIChat";
 import axios from "axios";
 import { differenceInMinutes, parseISO } from "date-fns";
 import { AlertTriangle, LogOut } from "lucide-react";
@@ -68,6 +69,7 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   const { play: playSfx } = useSfx();
   const [sfxVolume, setSfxVolume] = useState(0.5);
+  const pomodoroRef = useRef<PomodoroTimerHandle>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect --
    * Mount-time sync with browser-only state (hydration flag, localStorage).
@@ -240,6 +242,7 @@ export default function Dashboard() {
           {/* Left Column: Timer & Ambient (4 columns) */}
           <div className="lg:col-span-4 space-y-8 order-2 lg:order-1">
             <PomodoroTimer
+              ref={pomodoroRef}
               onPlaySfx={handlePlaySfx}
               sfxVolume={sfxVolume}
               onSfxVolumeChange={handleSfxVolumeChange}
@@ -251,9 +254,14 @@ export default function Dashboard() {
             <Mascot />
           </div>
 
-          {/* Right Column: Tasks (8 columns) */}
-          <div className="lg:col-span-8 order-1 lg:order-2">
+          {/* Middle Column: Tasks (5 columns) */}
+          <div className="lg:col-span-5 order-1 lg:order-2">
             <TaskList />
+          </div>
+
+          {/* Right Column: AI Chat (3 columns) */}
+          <div className="lg:col-span-3 order-3">
+            <AIChat onLoadQueue={(steps) => pomodoroRef.current?.loadQueue(steps)} />
           </div>
         </div>
       </div>

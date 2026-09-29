@@ -10,6 +10,8 @@ const calendarEventSchema = z.object({
   summary: z.string().min(1).max(500).trim(),
   start: z.string().datetime(),
   end: z.string().datetime(),
+  /** Minutos antes del evento para avisar (recordatorios nativos de Google). */
+  reminderMinutes: z.array(z.number().int().min(1).max(40320)).max(5).optional(),
 }).refine((data) => new Date(data.end) > new Date(data.start), {
   message: "end must be after start",
 });
@@ -122,7 +124,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { summary, start, end } = parsed.data;
+  const { summary, start, end, reminderMinutes } = parsed.data;
 
   const auth = getGoogleClient(token.accessToken as string);
   const calendar = google.calendar({ version: "v3", auth });
@@ -134,6 +136,15 @@ export async function POST(req: NextRequest) {
         summary,
         start: { dateTime: start },
         end: { dateTime: end },
+        reminders: reminderMinutes?.length
+          ? {
+              useDefault: false,
+              overrides: reminderMinutes.map((minutes) => ({
+                method: "popup",
+                minutes,
+              })),
+            }
+          : { useDefault: true },
       },
     });
 

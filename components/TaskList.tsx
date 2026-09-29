@@ -49,6 +49,7 @@ import { CSS } from "@dnd-kit/utilities";
 import confetti from "canvas-confetti";
 import EventDetails from "./EventDetails";
 import type { CalendarEvent } from "@/types/calendar";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 
 interface Task {
   id: string;
@@ -372,35 +373,12 @@ export default function TaskList() {
     }),
   );
 
+  const { start: startVoice } = useVoiceInput();
+
   const startVoiceTyping = (setter: React.Dispatch<React.SetStateAction<string>>) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn("La API de Web Speech no está soportada en este navegador.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'es-CO';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setter((prev) => (prev ? `${prev} ${transcript}` : transcript));
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onerror = (event: any) => {
-      if (event.error === 'not-allowed') {
-        alert("El acceso al micrófono fue denegado. Por favor, permite el uso del micrófono en la configuración de tu navegador (el ícono del candado en la barra de direcciones) y recarga la página.");
-      } else {
-        console.warn("Aviso en reconocimiento de voz:", event.error);
-      }
-    };
-
-    recognition.start();
+    startVoice((transcript) =>
+      setter((prev) => (prev ? `${prev} ${transcript}` : transcript)),
+    );
   };
 
   // La lista a la que pertenece la tarea; cae a la lista por defecto para
@@ -461,6 +439,14 @@ export default function TaskList() {
     const timeout = setTimeout(() => setNotice(null), 7000);
     return () => clearTimeout(timeout);
   }, [notice]);
+
+  // El asistente de IA crea tareas/eventos por su cuenta; este evento nos
+  // avisa para refrescar la lista sin acoplar ambos componentes.
+  useEffect(() => {
+    const handler = () => fetchTasks();
+    window.addEventListener("pomodoro-chibcha:refresh-tasks", handler);
+    return () => window.removeEventListener("pomodoro-chibcha:refresh-tasks", handler);
+  }, [fetchTasks]);
 
   const saveLocalTasks = (newTasks: Task[]) => {
     setTasks(newTasks);

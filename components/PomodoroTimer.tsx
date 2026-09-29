@@ -1,6 +1,7 @@
 "use client";
 
-import { usePomodoro } from "@/hooks/usePomodoro";
+import { forwardRef, useImperativeHandle } from "react";
+import { usePomodoro, type QueueStep } from "@/hooks/usePomodoro";
 import type { SfxType } from "@/hooks/useSfx";
 import {
   Play,
@@ -12,18 +13,24 @@ import {
   Zap,
   Volume2,
   VolumeX,
+  ListChecks,
+  X,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
-export default function PomodoroTimer({
-  onPlaySfx,
-  sfxVolume,
-  onSfxVolumeChange,
-}: {
-  onPlaySfx: (type: SfxType) => void;
-  sfxVolume: number;
-  onSfxVolumeChange: (volume: number) => void;
-}) {
+export interface PomodoroTimerHandle {
+  /** Carga subtareas con tiempo asignado (ej. desde el chat de IA) y arranca la primera. */
+  loadQueue: (steps: QueueStep[]) => void;
+}
+
+const PomodoroTimer = forwardRef<
+  PomodoroTimerHandle,
+  {
+    onPlaySfx: (type: SfxType) => void;
+    sfxVolume: number;
+    onSfxVolumeChange: (volume: number) => void;
+  }
+>(function PomodoroTimer({ onPlaySfx, sfxVolume, onSfxVolumeChange }, ref) {
   const {
     mode,
     timeLeft,
@@ -32,6 +39,11 @@ export default function PomodoroTimer({
     switchMode,
     toggleTimer,
     resetTimer,
+    queue,
+    queueIndex,
+    activeStep,
+    loadQueue,
+    clearQueue,
     formatTime,
   } = usePomodoro({
     onPhaseStart: (phase) => {
@@ -48,12 +60,37 @@ export default function PomodoroTimer({
     },
   });
 
+  useImperativeHandle(ref, () => ({ loadQueue }), [loadQueue]);
+
   return (
     <div className="flex flex-col items-center justify-center p-8 pb-12 bg-neutral-900/50 backdrop-blur-md rounded-3xl border border-neutral-800 shadow-2xl relative overflow-hidden">
       {/* Decorative Glow */}
       <div
         className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${mode === "focus" ? "from-blue-500 to-purple-500" : "from-green-400 to-emerald-600"}`}
       />
+
+      {/* Cola de subtareas activa (creada por la IA a partir de un límite de tiempo) */}
+      {queue && (
+        <div className="w-full mb-6 flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3">
+          <ListChecks className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs uppercase tracking-wide text-indigo-300">
+              Paso {queueIndex + 1} de {queue.length}
+            </p>
+            <p className="text-sm text-white font-medium truncate">
+              {mode === "focus" ? activeStep?.title : "Descanso corto"}
+            </p>
+          </div>
+          <button
+            onClick={clearQueue}
+            className="p-1.5 text-indigo-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Cancelar cola de subtareas"
+            title="Cancelar cola de subtareas"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Mode Selectors */}
       <div className="flex gap-2 mb-8 flex-wrap justify-center">
@@ -169,4 +206,6 @@ export default function PomodoroTimer({
       </div>
     </div>
   );
-}
+});
+
+export default PomodoroTimer;

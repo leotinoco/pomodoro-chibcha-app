@@ -25,6 +25,7 @@
   - **Auto-Pause**: Ambient audio pauses automatically when a meeting approaches.
 - **🎧 Ambient Soundscapes**: Built-in Lofi, Classical, and Electronic radio for deep focus.
 - **🎨 Premium UX**: Glassmorphism, smooth animations (Framer Motion), and confetti celebrations.
+- **🤖 AI Chat Assistant**: Paste an image or type/dictate a request and the AI turns it into a calendar event (with 15/10/5-minute Google reminders), a task, or a Pomodoro-sized breakdown of a large task with a time limit. Runs on a 10-provider free-tier fallback chain (`lib/ai`) — configure any subset in `.env.local` (see `.env.example`).
 
 ## 🛠️ Tech Stack
 
