@@ -11,14 +11,28 @@ import Mascot from "./Mascot";
 import AIChat from "./AIChat";
 import axios from "axios";
 import { differenceInMinutes, parseISO } from "date-fns";
-import { AlertTriangle, LogOut } from "lucide-react";
+import { AlertTriangle, BellRing, LogOut, X } from "lucide-react";
 import { SfxType, useSfx } from "@/hooks/useSfx";
 
 interface CalendarEvent {
+  id: string;
   summary: string;
   start: {
     dateTime: string;
   };
+}
+
+/**
+ * Minutos antes de un evento en los que avisamos dentro de la app, además del
+ * recordatorio nativo de Google. Si el celular está en silencio (trabajando,
+ * estudiando) esta alerta en pantalla + sonido sigue avisando.
+ */
+const IN_APP_REMINDER_THRESHOLDS = [15, 10, 5];
+
+interface ReminderAlert {
+  key: string;
+  summary: string;
+  minutes: number;
 }
 
 interface CalendarState {
@@ -70,6 +84,10 @@ export default function Dashboard() {
   const { play: playSfx } = useSfx();
   const [sfxVolume, setSfxVolume] = useState(0.5);
   const pomodoroRef = useRef<PomodoroTimerHandle>(null);
+  const [reminderAlerts, setReminderAlerts] = useState<ReminderAlert[]>([]);
+  // Recuerda qué combinaciones evento+umbral ya avisamos, para no repetir la
+  // alerta en cada sondeo mientras el evento sigue dentro de la ventana.
+  const firedRemindersRef = useRef<Set<string>>(new Set());
 
   /* eslint-disable react-hooks/set-state-in-effect --
    * Mount-time sync with browser-only state (hydration flag, localStorage).
@@ -93,6 +111,44 @@ export default function Dashboard() {
     localStorage.setItem("sfxVolume", newVolume.toString());
   };
 
+  const handlePlaySfx = useCallback(
+    (type: SfxType) => {
+      void playSfx(type, { volume: sfxVolume, onDuckingChange: setIsDucking });
+    },
+    [playSfx, sfxVolume],
+  );
+
+  // Alertas en pantalla (+ sonido) para no depender solo de la notificación
+  // nativa del celular, que no se nota si está en silencio.
+  const triggerInAppReminder = useCallback(
+    (event: CalendarEvent, minutes: number) => {
+      setReminderAlerts((prev) => [
+        ...prev,
+        { key: `${event.id}-${minutes}`, summary: event.summary, minutes },
+      ]);
+      handlePlaySfx("start");
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(`En ${minutes} minutos: ${event.summary}`, {
+          body: "Recordatorio de Pomodoro Chibcha",
+          icon: "/logo-pomodoro.avif",
+        });
+      }
+    },
+    [handlePlaySfx],
+  );
+
+  const dismissReminderAlert = (key: string) => {
+    setReminderAlerts((prev) => prev.filter((a) => a.key !== key));
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -100,15 +156,32 @@ export default function Dashboard() {
       dispatch({ type: "FETCH_START" });
       try {
         const res = await axios.get("/api/calendar");
-        const events = res.data.events || [];
+        const events: CalendarEvent[] = res.data.events || [];
         const now = new Date();
 
         const bufferTime = 10; // minutes
-        const nextMeeting = events.find((event: CalendarEvent) => {
+        const nextMeeting = events.find((event) => {
           if (!event.start.dateTime) return false;
           const start = parseISO(event.start.dateTime);
           const diff = differenceInMinutes(start, now);
           return diff >= 0 && diff <= bufferTime;
+        });
+
+        // Recordatorio dentro de la app: se dispara la primera vez que un
+        // evento entra en cada ventana (15/10/5 min), independiente de la
+        // notificación nativa de Google.
+        events.forEach((event) => {
+          if (!event.start.dateTime) return;
+          const diff = differenceInMinutes(parseISO(event.start.dateTime), now);
+          if (diff < 0) return;
+
+          for (const threshold of IN_APP_REMINDER_THRESHOLDS) {
+            if (diff > threshold) continue;
+            const key = `${event.id}-${threshold}`;
+            if (firedRemindersRef.current.has(key)) continue;
+            firedRemindersRef.current.add(key);
+            triggerInAppReminder(event, threshold);
+          }
         });
 
         dispatch({
@@ -127,16 +200,9 @@ export default function Dashboard() {
     };
 
     checkCalendar();
-    const interval = setInterval(checkCalendar, 60000); // Check every minute
+    const interval = setInterval(checkCalendar, 30000); // Sondeo cada 30s para no pasar por alto una ventana de recordatorio
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
-  const handlePlaySfx = useCallback(
-    (type: SfxType) => {
-      void playSfx(type, { volume: sfxVolume, onDuckingChange: setIsDucking });
-    },
-    [playSfx, sfxVolume],
-  );
+  }, [isAuthenticated, triggerInAppReminder]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans selection:bg-purple-500/30">
@@ -219,6 +285,35 @@ export default function Dashboard() {
             >
               Iniciar sesión de nuevo
             </button>
+          </div>
+        )}
+
+        {/* Recordatorios en pantalla (15/10/5 min): respaldan la notificación
+            nativa de Google por si el celular está en silencio. */}
+        {reminderAlerts.length > 0 && (
+          <div className="space-y-2">
+            {reminderAlerts.map((alert) => (
+              <div
+                key={alert.key}
+                role="alert"
+                className="bg-purple-500/10 border border-purple-500/50 p-4 rounded-xl flex items-center gap-4"
+              >
+                <BellRing className="size-6 text-purple-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-white truncate">{alert.summary}</h3>
+                  <p className="text-purple-300 text-sm">
+                    Empieza en {alert.minutes} minuto{alert.minutes === 1 ? "" : "s"}.
+                  </p>
+                </div>
+                <button
+                  onClick={() => dismissReminderAlert(alert.key)}
+                  className="p-1.5 text-purple-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                  aria-label="Cerrar recordatorio"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
