@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.1] - 2026-10-02
+
+### <!--icon:shield--> Seguridad
+
+- **Parche de seguridad de Next.js**: Se actualiza a Next.js 16.3.8, que corrige 7 vulnerabilidades publicadas el 30 de septiembre. La más grave permitía usar el optimizador de imágenes para hacer peticiones desde el servidor hacia direcciones internas.
+
+- **Imágenes externas más acotadas**: El optimizador de imágenes ahora solo acepta fotos de perfil de Google. Antes aceptaba cualquier imagen alojada en el mismo dominio de Google, donde cualquiera puede subir archivos.
+
+### <!--icon:wrench--> Mantenimiento
+
+- Dependencias actualizadas: googleapis 182, lucide-react 1.49, TypeScript 6 y el resto de paquetes a sus últimas versiones compatibles. `npm audit` sigue en 0.
+
+---
+
 ## [0.13.0] - 2026-09-23
 
 ### <!--icon:bug--> Correcciones
