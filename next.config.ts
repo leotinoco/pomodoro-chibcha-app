@@ -11,10 +11,19 @@ const scriptSrc = [
 
 const nextConfig: NextConfig = {
   images: {
+    // Sólo las fotos de perfil de Google (/a/… y el formato antiguo /a-/…).
+    // En lh3.googleusercontent.com cualquiera puede alojar imágenes, y el
+    // optimizador descargaría desde el servidor lo que coincida con el patrón.
     remotePatterns: [
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
+        pathname: "/a/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/a-/**",
       },
     ],
   },
