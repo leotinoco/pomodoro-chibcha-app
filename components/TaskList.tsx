@@ -340,6 +340,16 @@ export default function TaskList() {
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Track locally completed tasks to keep them visible and struck through
+  const [locallyCompleted, setLocallyCompleted] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [completedEvents, setCompletedEvents] = useState<Set<string>>(
+    new Set(),
+  );
+
   // Arrastre en curso: tarea que se mueve y fila bajo el cursor.
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [overDragId, setOverDragId] = useState<string | null>(null);
@@ -435,6 +445,12 @@ export default function TaskList() {
     }
   }, [isAuthenticated]);
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+   * Sincronización con sistemas externos: la API de Google al cambiar la
+   * sesión y localStorage al montar. localStorage no existe durante el SSR,
+   * así que leerlo en un inicializador de estado causaría un desajuste de
+   * hidratación; un efecto es la forma segura.
+   */
   // Load tasks on mount or session change
   useEffect(() => {
     if (isAuthenticated) {
@@ -454,6 +470,19 @@ export default function TaskList() {
       }
     }
   }, [isAuthenticated, sessionStatus, fetchTasks]);
+
+  // Load completed events from local storage to persist daily checkmarks
+  useEffect(() => {
+    const savedEvents = localStorage.getItem("completedCalendarEvents");
+    if (savedEvents) {
+      try {
+        setCompletedEvents(new Set(JSON.parse(savedEvents)));
+      } catch (e) {
+        console.error("Failed to parse completed events", e);
+      }
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Los avisos se ocultan solos.
   useEffect(() => {
@@ -575,28 +604,6 @@ export default function TaskList() {
 
   const dragPlan =
     activeDragId && overDragId ? planNesting(activeDragId, overDragId) : null;
-
-  // Track locally completed tasks to keep them visible and struck through
-  const [locallyCompleted, setLocallyCompleted] = useState<Set<string>>(
-    new Set(),
-  );
-
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [completedEvents, setCompletedEvents] = useState<Set<string>>(
-    new Set(),
-  );
-
-  // Load completed events from local storage to persist daily checkmarks
-  useEffect(() => {
-    const savedEvents = localStorage.getItem("completedCalendarEvents");
-    if (savedEvents) {
-      try {
-        setCompletedEvents(new Set(JSON.parse(savedEvents)));
-      } catch (e) {
-        console.error("Failed to parse completed events", e);
-      }
-    }
-  }, []);
 
   const saveCompletedEvents = (newSet: Set<string>) => {
     setCompletedEvents(newSet);
