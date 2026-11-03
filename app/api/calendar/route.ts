@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { CalendarEvent } from "@/types/calendar";
 
 const calendarEventSchema = z.object({
-  summary: z.string().min(1).max(500).trim(),
+  summary: z.string().trim().min(1).max(500),
   start: z.string().datetime(),
   end: z.string().datetime(),
 }).refine((data) => new Date(data.end) > new Date(data.start), {
@@ -16,7 +16,7 @@ const calendarEventSchema = z.object({
 
 const calendarPatchSchema = z.object({
   eventId: z.string().min(1).max(1024),
-  summary: z.string().min(1).max(500).trim(),
+  summary: z.string().trim().min(1).max(500),
 });
 
 // Sólo los campos que muestra el panel: evita traer asistentes, correos, etc.
@@ -32,6 +32,19 @@ const EVENT_FIELDS = [
   "conferenceData(conferenceSolution/name,entryPoints(entryPointType,uri,label,pin))",
   "attachments(title,fileUrl)",
 ].join(",");
+
+function safeHttpUrl(raw: string | null | undefined): string | undefined {
+  const value = raw?.trim();
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.href
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function toClientEvent(event: calendar_v3.Schema$Event): CalendarEvent {
   const entryPoints = event.conferenceData?.entryPoints ?? [];
@@ -51,7 +64,7 @@ function toClientEvent(event: calendar_v3.Schema$Event): CalendarEvent {
     },
     description: event.description || undefined,
     location: event.location || undefined,
-    htmlLink: event.htmlLink || undefined,
+    htmlLink: safeHttpUrl(event.htmlLink),
     meetLink: video?.uri || event.hangoutLink || undefined,
     conferenceName: event.conferenceData?.conferenceSolution?.name || undefined,
     phone: phone?.uri
@@ -73,7 +86,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const auth = getGoogleClient(token.accessToken as string);
+  const auth = getGoogleClient({
+    accessToken: token.accessToken as string,
+    refreshToken: token.refreshToken as string | undefined,
+    accessTokenExpires: token.accessTokenExpires as number | undefined,
+  });
   const calendar = google.calendar({ version: "v3", auth });
 
   try {
@@ -124,12 +141,17 @@ export async function POST(req: NextRequest) {
 
   const { summary, start, end } = parsed.data;
 
-  const auth = getGoogleClient(token.accessToken as string);
+  const auth = getGoogleClient({
+    accessToken: token.accessToken as string,
+    refreshToken: token.refreshToken as string | undefined,
+    accessTokenExpires: token.accessTokenExpires as number | undefined,
+  });
   const calendar = google.calendar({ version: "v3", auth });
 
   try {
     const response = await calendar.events.insert({
       calendarId: "primary",
+      fields: EVENT_FIELDS,
       requestBody: {
         summary,
         start: { dateTime: start },
@@ -137,7 +159,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(response.data);
+    return NextResponse.json(toClientEvent(response.data));
   } catch (error) {
     return googleErrorResponse("Error creating calendar event", error);
   }
@@ -166,17 +188,22 @@ export async function PATCH(req: NextRequest) {
 
   const { eventId, summary } = parsed.data;
 
-  const auth = getGoogleClient(token.accessToken as string);
+  const auth = getGoogleClient({
+    accessToken: token.accessToken as string,
+    refreshToken: token.refreshToken as string | undefined,
+    accessTokenExpires: token.accessTokenExpires as number | undefined,
+  });
   const calendar = google.calendar({ version: "v3", auth });
 
   try {
     const response = await calendar.events.patch({
       calendarId: "primary",
       eventId,
+      fields: EVENT_FIELDS,
       requestBody: { summary },
     });
 
-    return NextResponse.json(response.data);
+    return NextResponse.json(toClientEvent(response.data));
   } catch (error) {
     return googleErrorResponse("Error updating calendar event", error);
   }

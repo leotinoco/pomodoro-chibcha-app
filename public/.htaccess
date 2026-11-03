@@ -3,5 +3,6 @@
   Header set X-Frame-Options "DENY"
   Header set X-XSS-Protection "0"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
-  Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Header set Permissions-Policy "camera=(), microphone=(self), geolocation=()"
+  Header set Cross-Origin-Opener-Policy "same-origin"
 </IfModule>

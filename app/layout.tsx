@@ -16,26 +16,26 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pomodoro.chibcha.club"),
-  title: "Pomodoro Chibcha - Focus & Productivity",
+  title: "Pomodoro Chibcha App - Focus & Productivity",
   description:
-    "Boost your productivity with Pomodoro Chibcha. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
+    "Boost your productivity with Pomodoro Chibcha App. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
   keywords: ["pomodoro", "productivity", "google tasks", "google calendar", "focus", "study timer", "lofi"],
   authors: [{ name: "Chibcha Club", url: "https://chibcha.club" }],
   icons: {
     icon: "/favicon.avif",
   },
   openGraph: {
-    title: "Pomodoro Chibcha - Focus & Productivity",
+    title: "Pomodoro Chibcha App - Focus & Productivity",
     description:
-      "Boost your productivity with Pomodoro Chibcha. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
+      "Boost your productivity with Pomodoro Chibcha App. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
     url: "https://pomodoro.chibcha.club",
-    siteName: "Pomodoro Chibcha",
+    siteName: "Pomodoro Chibcha App",
     images: [
       {
         url: "/online-pomodoro-google-integration.png",
         width: 1200,
         height: 630,
-        alt: "Pomodoro Chibcha Dashboard",
+        alt: "Pomodoro Chibcha App Dashboard",
       },
     ],
     locale: "es_CO",
@@ -43,9 +43,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pomodoro Chibcha - Focus & Productivity",
+    title: "Pomodoro Chibcha App - Focus & Productivity",
     description:
-      "Boost your productivity with Pomodoro Chibcha. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
+      "Boost your productivity with Pomodoro Chibcha App. Features include a customizable Pomodoro timer, Google Tasks & Calendar integration, and ambient sounds for deep focus.",
     images: ["/online-pomodoro-google-integration.png"],
   },
   alternates: {
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Pomodoro Chibcha",
+  name: "Pomodoro Chibcha App",
   applicationCategory: "ProductivityApplication",
   operatingSystem: "Web",
   url: "https://pomodoro.chibcha.club",
@@ -84,7 +84,9 @@ export default function RootLayout({
       >
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
         />
         <Providers>{children}</Providers>
         {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}

@@ -4,18 +4,18 @@ import subprocess
 import datetime
 from collections import defaultdict
 
-def run_command(command):
+def run_command(args):
     try:
-        result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
+        result = subprocess.check_output(args, stderr=subprocess.STDOUT, shell=False)
         return result.decode('utf-8').strip()
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         return ""
 
 def get_latest_tag():
     try:
-        tag = run_command("git describe --tags --abbrev=0")
+        tag = run_command(["git", "describe", "--tags", "--abbrev=0"])
         return tag
-    except:
+    except Exception:
         return ""
 
 def get_commits_since(tag):
@@ -25,7 +25,7 @@ def get_commits_since(tag):
         range_spec = "HEAD"
     
     # Format: hash|subject|body
-    log_output = run_command(f'git log {range_spec} --pretty=format:"%H|%s|%b<ENDCommit>"')
+    log_output = run_command(["git", "log", range_spec, "--pretty=format:%H|%s|%b<ENDCommit>"])
     return log_output.split("<ENDCommit>")
 
 def parse_commit(commit_str):
@@ -165,7 +165,6 @@ def update_changelog(new_version, commits):
         for item in params_by_type["Otros"]:
             new_entry += f"- {item}\n"
 
-    mode = 'w'
     content = ""
     
     if os.path.exists(changelog_path):

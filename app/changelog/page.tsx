@@ -81,7 +81,7 @@ export default async function ChangelogPage() {
             <ArrowLeft className="size-5" />
             <span>Back to App</span>
           </Link>
-          <span className="text-sm font-medium text-zinc-500">v0.13.1</span>
+          <span className="text-sm font-medium text-zinc-500">v0.14.0</span>
         </div>
       </header>
 
@@ -144,7 +144,7 @@ export default async function ChangelogPage() {
 
         <section className="mt-16 pt-8 border-t border-neutral-800 text-center">
           <p className="text-zinc-500 mb-4">
-            Thank you for using Pomodoro & Dashboard.
+            Thank you for using Pomodoro Chibcha App.
           </p>
         </section>
       </main>

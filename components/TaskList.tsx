@@ -427,19 +427,38 @@ export default function TaskList() {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const [res, compRes, calendarRes] = await Promise.all([
+      // Se consultan con allSettled para soportar consentimiento granular de
+      // Google OAuth (p. ej. si el usuario concede acceso a Tasks pero no a
+      // Calendar, o viceversa, la integración autorizada sigue funcionando).
+      const [res, compRes, calendarRes] = await Promise.allSettled([
         axios.get("/api/tasks"),
         axios.get("/api/tasks?completed=true"),
         axios.get("/api/calendar"),
       ]);
-      setTasks(res.data.tasks || []);
-      setListId(res.data.listId);
-      setTaskLists(res.data.lists || []);
-      setCompletedTasks(compRes.data.tasks || []);
-      setEvents(calendarRes.data.events || []);
-    } catch (error) {
-      console.error("Failed to fetch tasks", error);
-      setNotice(apiErrorMessage(error, "No se pudieron cargar tus tareas."));
+
+      if (res.status === "fulfilled") {
+        setTasks(res.value.data.tasks || []);
+        setListId(res.value.data.listId);
+        setTaskLists(res.value.data.lists || []);
+      } else {
+        console.error("Failed to fetch tasks", res.reason);
+      }
+
+      if (compRes.status === "fulfilled") {
+        setCompletedTasks(compRes.value.data.tasks || []);
+      }
+
+      if (calendarRes.status === "fulfilled") {
+        setEvents(calendarRes.value.data.events || []);
+      } else {
+        console.error("Failed to fetch calendar events", calendarRes.reason);
+      }
+
+      if (res.status === "rejected" && calendarRes.status === "rejected") {
+        setNotice(
+          apiErrorMessage(res.reason, "No se pudieron cargar tus tareas."),
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -460,7 +479,8 @@ export default function TaskList() {
       const savedTasks = localStorage.getItem("localTasks");
       if (savedTasks) {
         try {
-          setTasks(JSON.parse(savedTasks));
+          const parsed: unknown = JSON.parse(savedTasks);
+          setTasks(Array.isArray(parsed) ? (parsed as Task[]) : []);
         } catch (e) {
           console.error("Failed to parse local tasks", e);
           setTasks([]);
@@ -476,7 +496,14 @@ export default function TaskList() {
     const savedEvents = localStorage.getItem("completedCalendarEvents");
     if (savedEvents) {
       try {
-        setCompletedEvents(new Set(JSON.parse(savedEvents)));
+        const parsed: unknown = JSON.parse(savedEvents);
+        if (Array.isArray(parsed)) {
+          setCompletedEvents(
+            new Set(
+              parsed.filter((item): item is string => typeof item === "string"),
+            ),
+          );
+        }
       } catch (e) {
         console.error("Failed to parse completed events", e);
       }
@@ -1021,13 +1048,13 @@ export default function TaskList() {
             </p>
             <p className="text-xs text-gray-500 mt-0.5">
               {getEventTime(event)}
-              {event.htmlLink && (
+              {event.htmlLink && /^https?:\/\//i.test(event.htmlLink) && (
                 <>
                   {" · "}
                   <a
                     href={event.htmlLink}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener noreferrer nofollow"
                     className="hover:text-gray-300 underline decoration-gray-600 underline-offset-2"
                   >
                     Abrir en Calendar
@@ -1386,7 +1413,7 @@ export default function TaskList() {
                 <button
                   type="button"
                   onClick={() => startVoiceTyping(setNewEventSummary)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-purple-400 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-purple-400 transition-colors"
                   title="Dictar por voz"
                 >
                   <Mic className="w-4 h-4" />

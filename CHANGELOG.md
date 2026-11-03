@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.14.0] - 2026-11-03
+
+### <!--icon:shield--> Seguridad
+
+- **Parches críticos de Next.js y dependencias**: Se actualiza a Next.js 16.4.4, React 19.3.1, Zod 4.6.7, Axios 1.21.0 y googleapis 189, corrigiendo 8 vulnerabilidades conocidas (3 críticas en Server Components y optimización de imágenes de Next.js, 4 altas y 1 moderada). `npm audit` queda en 0 vulnerabilidades.
+
+- **Eventos de calendario sin datos de terceros al crear o editar**: Al guardar o renombrar un evento, la respuesta del servidor ahora filtra los campos igual que al listar y valida que el enlace al evento sea `http` o `https`, evitando exponer correos de asistentes u otros metadatos internos de Google Calendar.
+
+- **Límite de solicitudes protegido en memoria**: El limitador de peticiones incorpora un tope máximo de IPs simultáneas con desalojo automático y prioriza las cabeceras de IP verificadas por la plataforma (`x-vercel-forwarded-for` y `x-real-ip`) frente a cabeceras falsificables.
+
+- **Validación estricta de textos y almacenamiento local**: Los títulos de tareas y eventos ahora recortan los espacios en blanco antes de comprobar la longitud mínima, impidiendo crear entradas vacías con solo espacios, y se valida el formato de las tareas y el volumen guardados en el navegador antes de usarlos.
+
+- **Escáner de secretos y scripts endurecidos**: El detector pre-commit ahora bloquea cualquier archivo de clave o certificado (`.pem`, `.key`, `.p12`, `.pfx`, `.crt`, `.cer`) sin importar su nombre, y el generador de changelog ejecuta comandos de Git sin invocar una shell intermedia.
+
+### <!--icon:bug--> Correcciones
+
+- **Reconexión limpia con Google cuando vence la sesión**: Si tu sesión de Google expiraba y volvías a iniciar sesión, el navegador conservaba el token antiguo vencido y seguía mostrando el aviso de sesión expirada. Ahora las nuevas credenciales reemplazan siempre a las anteriores al reconectar.
+
+- **Sesión de Google activa por más tiempo**: El token de acceso se renueva de forma anticipada 5 minutos antes de vencer y la pestaña refresca la sesión periódicamente en segundo plano para evitar cortes mientras trabajas en un Pomodoro largo.
+
+- **Permisos parciales de Google**: Si al iniciar sesión autorizas solo Google Tasks o solo Google Calendar, el panel carga con normalidad la sección permitida en lugar de vaciar ambas listas cuando una de las dos devuelve acceso denegado.
+
+- **Crear tareas sin lista previa seleccionada**: Si creas tu primera tarea antes de que termine de cargar el identificador de lista, el servidor usa automáticamente tu lista principal de Google Tasks en vez de rechazar la petición.
+
+### <!--icon:gear--> Mejoras Internas
+
+- **Cumplimiento completo para la verificación de Google OAuth**: Se unifica el nombre oficial **Pomodoro Chibcha App** en toda la aplicación, metadatos y páginas legales, se incorpora el botón oficial multicolor de inicio de sesión con Google, se habilita `form-action` hacia `accounts.google.com` en la política CSP y se detalla el uso de datos básicos de perfil en la Política de Privacidad.
+
+### <!--icon:wrench--> Mantenimiento
+
+- Dependencias actualizadas: `next` 16.4.4, `@next/third-parties` 16.4.4, `eslint-config-next` 16.4.4, `react` y `react-dom` 19.3.1, `googleapis` 189.0.0, `axios` 1.21.0, `zod` 4.6.7, `lucide-react` 1.66.0, `tailwindcss` 4.3.4, `@types/node` 24.19.2 y configuración de Husky v9.
+
+---
+
 ## [0.13.1] - 2026-10-02
 
 ### <!--icon:shield--> Seguridad

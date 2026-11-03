@@ -58,6 +58,29 @@ function calendarReducer(state: CalendarState, action: CalendarAction): Calendar
   }
 }
 
+function GoogleMark() {
+  return (
+    <svg className="size-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.29a7.12 7.12 0 0 1 0-4.58V6.62H1.29a11.99 11.99 0 0 0 0 10.76l3.98-3.09Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96Z"
+      />
+    </svg>
+  );
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   // Booleano estable: el objeto de sesión cambia en cada refresco (p. ej. al
@@ -81,7 +104,10 @@ export default function Dashboard() {
   useEffect(() => {
     const saved = localStorage.getItem("sfxVolume");
     if (saved !== null) {
-      setSfxVolume(parseFloat(saved));
+      const parsed = parseFloat(saved);
+      if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) {
+        setSfxVolume(parsed);
+      }
     }
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -140,20 +166,25 @@ export default function Dashboard() {
     <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans selection:bg-purple-500/30">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <header className="flex justify-between items-center">
+        <header className="flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="relative size-10">
+            <div className="relative size-10 shrink-0">
               <Image
                 src="/logo-pomodoro.avif"
-                alt="Pomodoro Chibcha Logo"
+                alt="Pomodoro Chibcha App Logo"
                 fill
                 sizes="(max-width: 768px) 40px, 40px"
                 className="object-contain"
               />
             </div>
-            <h1 className="text-2xl font-semibold text-white">
-              Pomodoro & Dashboard
-            </h1>
+            <div>
+              <h1 className="text-2xl font-semibold text-white">
+                Pomodoro Chibcha App
+              </h1>
+              <p className="text-xs text-zinc-400">
+                Temporizador Pomodoro, música ambiental y sincronización con Google Tasks y Calendar
+              </p>
+            </div>
           </div>
 
           {session ? (
@@ -193,9 +224,10 @@ export default function Dashboard() {
           ) : (
             <button
               onClick={() => signIn("google")}
-              className="px-6 py-2 bg-white text-black rounded-full font-semibold text-sm hover:scale-105 transition-transform"
+              className="inline-flex items-center gap-2.5 px-5 py-2.5 bg-white text-zinc-900 rounded-full font-semibold text-sm shadow-sm hover:bg-zinc-100 hover:scale-105 transition-all"
             >
-              Sign in with Google
+              <GoogleMark />
+              <span>Sign in with Google</span>
             </button>
           )}
         </header>
@@ -213,9 +245,10 @@ export default function Dashboard() {
             </p>
             <button
               onClick={() => signIn("google")}
-              className="px-4 py-2 bg-white text-black rounded-full font-semibold text-sm hover:scale-105 transition-transform"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-zinc-900 rounded-full font-semibold text-sm hover:bg-zinc-100 hover:scale-105 transition-all"
             >
-              Iniciar sesión de nuevo
+              <GoogleMark />
+              <span>Iniciar sesión de nuevo</span>
             </button>
           </div>
         )}
@@ -268,7 +301,7 @@ export default function Dashboard() {
             href="/changelog"
             className="hover:text-blue-400 transition-colors underline decoration-zinc-700 hover:decoration-blue-400"
           >
-            Ver Novedades (v0.13.1)
+            Ver Novedades (v0.14.0)
           </Link>
           <span className="text-zinc-700 hidden sm:inline">•</span>
           <Link

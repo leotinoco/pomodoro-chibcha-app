@@ -36,6 +36,7 @@ async function refreshAccessToken(token: JWT) {
       accessToken: refreshedTokens.access_token,
       accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+      error: undefined,
     };
   } catch (error) {
     const message =
@@ -71,23 +72,25 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, account, user }) {
-      // Initial sign in
+      // Initial sign in (or re-authentication after an expired refresh token).
+      // Spread `token` first so fresh OAuth credentials overwrite stale tokens
+      // and clear any previous `RefreshAccessTokenError`.
       if (account && user) {
         return {
+          ...token, // Keep default properties (name, email, picture, sub)
           accessToken: account.access_token,
           // NextAuth v4 exposes `expires_at` (absolute, in seconds); the raw
           // `expires_in` from Google is not present on the account object.
           accessTokenExpires: account.expires_at
             ? account.expires_at * 1000
             : Date.now() + 3600 * 1000,
-          refreshToken: account.refresh_token,
-          user,
-          ...token, // Keep default properties (name, email, picture, sub)
+          refreshToken: account.refresh_token ?? token.refreshToken,
+          error: undefined,
         };
       }
 
-      // Return previous token if the access token has not expired yet
-      if (Date.now() < (token.accessTokenExpires ?? 0)) {
+      // Return previous token if the access token has at least 5 minutes left
+      if (Date.now() < (token.accessTokenExpires ?? 0) - 5 * 60 * 1000) {
         return token;
       }
 

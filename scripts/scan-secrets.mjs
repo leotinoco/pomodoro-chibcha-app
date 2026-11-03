@@ -67,10 +67,12 @@ const blockedPathPatterns = [
   /(^|\/)\.npmrc$/i,
   /(^|\/)\.aws\/credentials$/i,
   /(^|\/)service-?account.*\.json$/i,
-  /(^|\/)\.p12$/i,
-  /(^|\/)\.pem$/i,
-  /(^|\/)\.key$/i,
-  /(^|\/)\.pfx$/i,
+  /\.p12$/i,
+  /\.pem$/i,
+  /\.key$/i,
+  /\.pfx$/i,
+  /\.crt$/i,
+  /\.cer$/i,
 ];
 
 const allowedPathPatterns = [

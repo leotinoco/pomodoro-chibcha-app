@@ -21,12 +21,12 @@ const taskPatchSchema = z.object({
   /** Lista destino al anidar bajo una tarea de otra lista. */
   destinationTasklist: googleId.optional(),
   due: z.string().datetime().optional().nullable(),
-  title: z.string().min(1).max(1024).trim().optional(),
+  title: z.string().trim().min(1).max(1024).optional(),
 });
 
 const taskCreateSchema = z.object({
-  tasklist: googleId.optional(),
-  title: z.string().min(1).max(1024).trim(),
+  tasklist: googleId.nullish(),
+  title: z.string().trim().min(1).max(1024),
   status: z.enum(["needsAction", "completed"]).optional(),
   due: z.string().datetime().optional().nullable(),
 });
@@ -95,7 +95,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const getCompleted = searchParams.get("completed") === "true";
 
-  const auth = getGoogleClient(token.accessToken as string);
+  const auth = getGoogleClient({
+    accessToken: token.accessToken as string,
+    refreshToken: token.refreshToken as string | undefined,
+    accessTokenExpires: token.accessTokenExpires as number | undefined,
+  });
   const service = google.tasks({ version: "v1", auth });
 
   try {
@@ -214,7 +218,11 @@ export async function PATCH(req: NextRequest) {
     title,
   } = parsed.data;
 
-  const auth = getGoogleClient(token.accessToken as string);
+  const auth = getGoogleClient({
+    accessToken: token.accessToken as string,
+    refreshToken: token.refreshToken as string | undefined,
+    accessTokenExpires: token.accessTokenExpires as number | undefined,
+  });
   const service = google.tasks({ version: "v1", auth });
 
   try {
@@ -284,11 +292,15 @@ export async function POST(req: NextRequest) {
 
   const { tasklist, title, status, due } = parsed.data;
 
-  const auth = getGoogleClient(token.accessToken as string);
+  const auth = getGoogleClient({
+    accessToken: token.accessToken as string,
+    refreshToken: token.refreshToken as string | undefined,
+    accessTokenExpires: token.accessTokenExpires as number | undefined,
+  });
   const service = google.tasks({ version: "v1", auth });
 
   try {
-    let targetTaskListId = tasklist;
+    let targetTaskListId = tasklist ?? undefined;
     if (!targetTaskListId) {
       const taskLists = await service.tasklists.list();
       targetTaskListId = taskLists.data.items?.[0]?.id ?? undefined;

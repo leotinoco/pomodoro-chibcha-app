@@ -68,7 +68,8 @@ const nextConfig: NextConfig = {
               "object-src 'none'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
+              // NextAuth puede redirigir un POST de /api/auth/signin/* hacia Google OAuth.
+              "form-action 'self' https://accounts.google.com",
             ].join("; "),
           },
           {

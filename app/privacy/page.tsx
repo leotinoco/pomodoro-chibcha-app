@@ -68,8 +68,9 @@ export default function PrivacyPolicy() {
                 lista de asistentes ni solicitamos acceso a la configuración o a la compartición de sus calendarios.
               </li>
               <li>
-                <strong>Perfil Básico:</strong> Obtenemos su nombre y correo electrónico únicamente para
-                identificar su sesión de usuario y personalizar el tablero.
+                <strong>Perfil Básico</strong> (<code>openid</code>, <code>email</code>, <code>profile</code>): Obtenemos su
+                nombre, foto de perfil y correo electrónico únicamente para identificar su sesión de usuario y
+                personalizar el tablero.
               </li>
             </ul>
             <p className="leading-relaxed text-slate-300 mt-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
