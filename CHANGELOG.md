@@ -26,7 +26,7 @@
 
 ### <!--icon:gear--> Mejoras Internas
 
-- **Cumplimiento completo para la verificación de Google OAuth**: Se unifica el nombre oficial **Pomodoro Chibcha App** en toda la aplicación, metadatos y páginas legales, se incorpora el botón oficial multicolor de inicio de sesión con Google, se habilita `form-action` hacia `accounts.google.com` en la política CSP y se detalla el uso de datos básicos de perfil en la Política de Privacidad.
+- **Cumplimiento completo para la verificación de Google OAuth**: Se unifica el nombre oficial **Pomodoro Chibcha** en toda la aplicación, metadatos y páginas legales, se incorpora el botón oficial multicolor de inicio de sesión con Google, se habilita `form-action` hacia `accounts.google.com` en la política CSP y se detalla el uso de datos básicos de perfil en la Política de Privacidad.
 
 ### <!--icon:wrench--> Mantenimiento
 

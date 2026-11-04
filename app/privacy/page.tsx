@@ -4,14 +4,14 @@ import Link from "next/link";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad | Pomodoro Chibcha App",
-  description: "Política de Privacidad para el uso de Pomodoro Chibcha App y sus integraciones con Google.",
+  title: "Política de Privacidad | Pomodoro Chibcha",
+  description: "Política de Privacidad para el uso de Pomodoro Chibcha y sus integraciones con Google.",
   alternates: {
     canonical: "https://pomodoro.chibcha.club/privacy",
   },
   openGraph: {
-    title: "Política de Privacidad | Pomodoro Chibcha App",
-    description: "Política de Privacidad para el uso de Pomodoro Chibcha App y sus integraciones con Google.",
+    title: "Política de Privacidad | Pomodoro Chibcha",
+    description: "Política de Privacidad para el uso de Pomodoro Chibcha y sus integraciones con Google.",
     url: "https://pomodoro.chibcha.club/privacy",
   },
 };
@@ -37,7 +37,7 @@ export default function PrivacyPolicy() {
               1. Introducción
             </h2>
             <p className="leading-relaxed text-slate-300">
-              Bienvenido a <strong>Pomodoro Chibcha App</strong>. Nos tomamos muy en serio su privacidad. 
+              Bienvenido a <strong>Pomodoro Chibcha</strong>. Nos tomamos muy en serio su privacidad. 
               Esta aplicación está diseñada para ser su centro de comando de productividad definitivo, 
               combinando la técnica Pomodoro, música ambiental (Lofi, Clásica, Rock) pensada
               para el estudio profundo, y la integración centralizada de sus tareas y eventos desde 
@@ -80,7 +80,7 @@ export default function PrivacyPolicy() {
               sus datos. Sus datos de Google no se usan para publicidad ni se transfieren a terceros.
             </p>
             <p className="leading-relaxed text-slate-300 mt-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-              <strong>Uso Limitado (Limited Use):</strong> El uso que Pomodoro Chibcha App hace de la información
+              <strong>Uso Limitado (Limited Use):</strong> El uso que Pomodoro Chibcha hace de la información
               recibida de las APIs de Google se adhiere a la{" "}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"
@@ -90,7 +90,7 @@ export default function PrivacyPolicy() {
               >
                 Política de Datos de Usuario de los Servicios API de Google
               </a>
-              , incluidos los requisitos de Uso Limitado. <em>Pomodoro Chibcha App&apos;s use and transfer of
+              , incluidos los requisitos de Uso Limitado. <em>Pomodoro Chibcha&apos;s use and transfer of
               information received from Google APIs to any other app will adhere to the{" "}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"

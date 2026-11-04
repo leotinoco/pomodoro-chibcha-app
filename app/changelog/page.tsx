@@ -15,14 +15,14 @@ function textOf(node: ReactNode): string {
 }
 
 export const metadata: Metadata = {
-  title: "Changelog | Pomodoro Chibcha App",
-  description: "Registro de cambios, actualizaciones y nuevas características de Pomodoro Chibcha App.",
+  title: "Changelog | Pomodoro Chibcha",
+  description: "Registro de cambios, actualizaciones y nuevas características de Pomodoro Chibcha.",
   alternates: {
     canonical: "https://pomodoro.chibcha.club/changelog",
   },
   openGraph: {
-    title: "Changelog | Pomodoro Chibcha App",
-    description: "Registro de cambios, actualizaciones y nuevas características de Pomodoro Chibcha App.",
+    title: "Changelog | Pomodoro Chibcha",
+    description: "Registro de cambios, actualizaciones y nuevas características de Pomodoro Chibcha.",
     url: "https://pomodoro.chibcha.club/changelog",
   },
 };
@@ -144,7 +144,7 @@ export default async function ChangelogPage() {
 
         <section className="mt-16 pt-8 border-t border-neutral-800 text-center">
           <p className="text-zinc-500 mb-4">
-            Thank you for using Pomodoro Chibcha App.
+            Thank you for using Pomodoro Chibcha.
           </p>
         </section>
       </main>

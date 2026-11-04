@@ -171,7 +171,7 @@ export default function Dashboard() {
             <div className="relative size-10 shrink-0">
               <Image
                 src="/logo-pomodoro.avif"
-                alt="Pomodoro Chibcha App Logo"
+                alt="Pomodoro Chibcha Logo"
                 fill
                 sizes="(max-width: 768px) 40px, 40px"
                 className="object-contain"
@@ -179,7 +179,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-white">
-                Pomodoro Chibcha App
+                Pomodoro Chibcha
               </h1>
               <p className="text-xs text-zinc-400">
                 Temporizador Pomodoro, música ambiental y sincronización con Google Tasks y Calendar
@@ -294,7 +294,7 @@ export default function Dashboard() {
       {/* Footer */}
       <footer className="text-center py-12 mt-20 text-zinc-500 text-sm">
         {mounted && (
-          <p>&copy; {new Date().getFullYear()} Pomodoro Chibcha App.</p>
+          <p>&copy; {new Date().getFullYear()} Pomodoro Chibcha.</p>
         )}
         <div className="flex items-center justify-center flex-wrap gap-4 mt-2">
           <Link
