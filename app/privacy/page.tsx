@@ -151,8 +151,14 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">6. Contacto</h2>
             <p className="leading-relaxed text-slate-300">
-              Si tiene preguntas sobre esta política o sobre el manejo de sus datos, puede contactarnos a
-              través de nuestro sitio principal en{" "}
+              Si tiene preguntas sobre esta política o sobre el manejo de sus datos, puede escribirnos a{" "}
+              <a
+                href="mailto:hola@chibcha.club"
+                className="text-emerald-400 underline hover:text-emerald-300"
+              >
+                hola@chibcha.club
+              </a>{" "}
+              o visitar nuestro sitio principal en{" "}
               <a
                 href="https://chibcha.club"
                 target="_blank"
